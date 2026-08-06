@@ -1,11 +1,19 @@
-import { IsString, Min } from 'class-validator';
+import { IsString, Matches, MinLength } from 'class-validator';
 
 export class AuthCredentialsDto {
   @IsString()
-  @Min(2)
+  @MinLength(2)
+  @Matches(/[A-Z]/, { message: 'username must contain an uppercase letter' })
+  @Matches(/[a-z]/, { message: 'username must contain a lowercase letter' })
+  @Matches(/^[^.\n]+$/, {
+    message: 'username must not contain dots or newlines',
+  })
   username: string;
 
   @IsString()
-  @Min(8)
+  @MinLength(8)
+  @Matches(/\d|\W/, {
+    message: 'password must contain a digit or special character',
+  })
   password: string;
 }

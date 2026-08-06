@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { QueryFailedError, Repository } from 'typeorm';
 import { User } from './user.entity';
-import { DataSource } from 'typeorm/browser';
+import { DataSource } from 'typeorm';
 import { AuthCredentialsDto } from './dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersRepository extends Repository<User> {
@@ -10,11 +15,30 @@ export class UsersRepository extends Repository<User> {
     super(User, dataSource.createEntityManager());
   }
 
-  async createUser(createUserDto: AuthCredentialsDto): Promise<void> {
-    const { username, password } = createUserDto;
+  async createUser(authCredentialsDto: AuthCredentialsDto): Promise<User> {
+    const { username, password } = authCredentialsDto;
 
-    const user = this.create({ username, password });
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(password, salt);
 
-    await this.save(user);
+    const user = this.create({ username, password: hash });
+
+    try {
+      await this.save(user);
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const code = (error.driverError as { code?: string }).code;
+
+        if (code === '23505') {
+          throw new ConflictException(`Username alreade exists`);
+        } else {
+          throw new InternalServerErrorException();
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    return user;
   }
 }
