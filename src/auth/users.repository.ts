@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { QueryFailedError, Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -11,6 +12,8 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersRepository extends Repository<User> {
+  private logger = new Logger(`UsersRepository`, { timestamp: true });
+
   constructor(private dataSource: DataSource) {
     super(User, dataSource.createEntityManager());
   }
@@ -25,6 +28,7 @@ export class UsersRepository extends Repository<User> {
 
     try {
       await this.save(user);
+      this.logger.log(`User "${username}" created`);
     } catch (error) {
       if (error instanceof QueryFailedError) {
         const code = (error.driverError as { code?: string }).code;
