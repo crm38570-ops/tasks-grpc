@@ -28,7 +28,15 @@ export class TasksRepository extends Repository<Task> {
       user,
     });
 
-    await this.save(task);
+    try {
+      await this.save(task);
+    } catch (error) {
+      this.logger.error(
+        `Failed to create task for user "${user.username}": ${title}`,
+        error,
+      );
+      throw new InternalServerErrorException();
+    }
 
     this.logger.log(`Task "${task.title}" created for user "${user.username}"`);
 
@@ -71,7 +79,18 @@ export class TasksRepository extends Repository<Task> {
   }
 
   async updateTaskStatus(task: Task): Promise<Task> {
-    const saved = await this.save(task);
+    let saved: Task;
+
+    try {
+      saved = await this.save(task);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update task "${task.id}" status to "${task.status}"`,
+        error,
+      );
+      throw new InternalServerErrorException();
+    }
+
     this.logger.log(
       `Task "${saved.title}" status updated to "${saved.status}"`,
     );

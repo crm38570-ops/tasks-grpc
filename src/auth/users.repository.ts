@@ -30,11 +30,13 @@ export class UsersRepository extends Repository<User> {
       await this.save(user);
       this.logger.log(`User "${username}" created`);
     } catch (error) {
+      this.logger.error(`Failed to create user "${username}"`, error.stack);
+
       if (error instanceof QueryFailedError) {
         const code = (error.driverError as { code?: string }).code;
 
         if (code === '23505') {
-          throw new ConflictException(`Username alreade exists`);
+          throw new ConflictException(`Username already exists`);
         } else {
           throw new InternalServerErrorException();
         }
