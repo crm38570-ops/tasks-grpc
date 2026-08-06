@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { Task } from './task.entity';
 import { CreateTaskDto, GetTasksFilterDto } from './dto';
@@ -7,6 +11,8 @@ import { User } from '../auth/user.entity';
 
 @Injectable()
 export class TasksRepository extends Repository<Task> {
+  private logger = new Logger(`TaskRepository`, { timestamp: true });
+
   constructor(private dataSource: DataSource) {
     super(Task, dataSource.createEntityManager());
   }
@@ -23,6 +29,8 @@ export class TasksRepository extends Repository<Task> {
     });
 
     await this.save(task);
+
+    this.logger.log(`Task "${task.title}" created for user "${user.username}"`);
 
     return task;
   }
@@ -42,9 +50,16 @@ export class TasksRepository extends Repository<Task> {
         { searchQuery: `%${searchQuery}%` },
       );
 
-    const tasks = await query.getMany();
-
-    return tasks;
+    try {
+      const tasks = await query.getMany();
+      return tasks;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get tasks for user "${user.username}". Filters: ${JSON.stringify(filterDto)}`,
+        error,
+      );
+      throw new InternalServerErrorException();
+    }
   }
 
   async getTaskById(id: string) {
@@ -56,6 +71,10 @@ export class TasksRepository extends Repository<Task> {
   }
 
   async updateTaskStatus(task: Task): Promise<Task> {
-    return await this.save(task);
+    const saved = await this.save(task);
+    this.logger.log(
+      `Task "${saved.title}" status updated to "${saved.status}"`,
+    );
+    return saved;
   }
 }
