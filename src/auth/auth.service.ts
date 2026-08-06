@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { AuthCredentialsDto } from './dto';
 import * as bcrypt from 'bcrypt';

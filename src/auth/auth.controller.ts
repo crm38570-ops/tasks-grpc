@@ -12,9 +12,7 @@ export class AuthController {
 
   @Post('signup')
   async signUp(@Body() authCredentialsDto: AuthCredentialsDto): Promise<User> {
-    this.logger.verbose(
-      `User "${authCredentialsDto.username}" signing up`,
-    );
+    this.logger.verbose(`User "${authCredentialsDto.username}" signing up`);
     return this.authServise.signUp(authCredentialsDto);
   }
 
@@ -22,9 +20,7 @@ export class AuthController {
   async signIn(
     @Body() authCredentialsDto: AuthCredentialsDto,
   ): Promise<JwtAccessToken> {
-    this.logger.verbose(
-      `User "${authCredentialsDto.username}" signing in`,
-    );
+    this.logger.verbose(`User "${authCredentialsDto.username}" signing in`);
     return this.authServise.signIn(authCredentialsDto);
   }
 }
