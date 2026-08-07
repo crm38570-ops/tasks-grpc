@@ -8,7 +8,7 @@ import { configValidationSchema } from './config.chema';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: `.env.stage.${process.env.stage}`,
+      envFilePath: `.env.stage.${process.env.STAGE}`,
       validationSchema: configValidationSchema,
     }),
     TasksModule,
