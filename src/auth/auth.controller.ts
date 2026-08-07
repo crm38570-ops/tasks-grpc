@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthCredentialsDto } from './dto';
 import { JwtAccessToken } from './types/jwt-access-token.interface';
 import { User } from './user.entity';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
 
 @ApiTags('Auth')
@@ -14,14 +14,6 @@ export class AuthController {
   constructor(private authServise: AuthService) {}
 
   @ApiOperation({ summary: 'Регистрация нового пользователя' })
-  @ApiBody({
-    type: AuthCredentialsDto,
-    examples: {
-      Валидный: {
-        value: { username: 'Marsianin', password: 'M@k@rony404!' },
-      },
-    },
-  })
   @ApiResponse({
     status: 201,
     description: 'Пользователь создан',
@@ -43,17 +35,6 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Аутентификация пользователя' })
-  @ApiBody({
-    type: AuthCredentialsDto,
-    examples: {
-      Валидный: {
-        value: { username: 'Marsianin', password: 'M@k@rony404!' },
-      },
-      'Неверный пароль': {
-        value: { username: 'Marsianin', password: 'wrong-pass' },
-      },
-    },
-  })
   @ApiResponse({
     status: 201,
     description: 'Успешная идентификация, токен выдан',

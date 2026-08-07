@@ -23,7 +23,6 @@ import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../auth/user.entity';
 import {
   ApiBearerAuth,
-  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -41,19 +40,6 @@ export class TasksController {
   constructor(private tasksService: TasksService) {}
 
   @ApiOperation({ summary: 'Создание задачи' })
-  @ApiBody({
-    type: CreateTaskDto,
-    description: 'Данные новой задачи',
-    examples: {
-      capybaras: {
-        value: {
-          title: 'Написать диссертацию',
-          description:
-            '"Капибары, почему все мы их так любим?". Использовать ChatGPT 5.6 Sol для максимального погружения в тему',
-        },
-      },
-    },
-  })
   @ApiResponse({
     status: 201,
     description: 'Задача создана',
@@ -160,15 +146,6 @@ export class TasksController {
     format: 'uuid',
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     description: 'UUID задачи',
-  })
-  @ApiBody({
-    type: UpdateTaskStatusDto,
-    description: 'Новый статус задачи',
-    examples: {
-      OPEN: { value: { status: 'OPEN' } },
-      IN_PROGRESS: { value: { status: 'IN_PROGRESS' } },
-      DONE: { value: { status: 'DONE' } },
-    },
   })
   @ApiResponse({
     status: 200,
