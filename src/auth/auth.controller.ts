@@ -17,7 +17,7 @@ export class AuthController {
   @ApiBody({
     type: AuthCredentialsDto,
     examples: {
-      valide: {
+      Валидный: {
         value: { username: 'Marsianin', password: 'M@k@rony404!' },
       },
     },
@@ -28,9 +28,13 @@ export class AuthController {
     type: User,
   })
   @ApiResponse({
-    status: 404,
-    description: 'Некорректные данные',
-    type: User,
+    status: 400,
+    description:
+      'Некорректные данные: username или password не прошли валидацию',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Username уже занят',
   })
   @Post('signup')
   async signUp(@Body() authCredentialsDto: AuthCredentialsDto): Promise<User> {
@@ -42,8 +46,11 @@ export class AuthController {
   @ApiBody({
     type: AuthCredentialsDto,
     examples: {
-      valide: {
+      Валидный: {
         value: { username: 'Marsianin', password: 'M@k@rony404!' },
+      },
+      'Неверный пароль': {
+        value: { username: 'Marsianin', password: 'wrong-pass' },
       },
     },
   })
@@ -53,8 +60,8 @@ export class AuthController {
     type: JwtAccessTokenDto,
   })
   @ApiResponse({
-    status: 404,
-    description: 'Наверный логин или пароль',
+    status: 401,
+    description: 'Неверный логин или пароль',
   })
   @Post('signin')
   async signIn(
