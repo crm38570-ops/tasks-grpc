@@ -3,19 +3,59 @@ import { AuthService } from './auth.service';
 import { AuthCredentialsDto } from './dto';
 import { JwtAccessToken } from './types/jwt-access-token.interface';
 import { User } from './user.entity';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   private logger = new Logger(`AuthController`);
 
   constructor(private authServise: AuthService) {}
 
+  @ApiOperation({ summary: 'Регистрация нового пользователя' })
+  @ApiBody({
+    type: AuthCredentialsDto,
+    examples: {
+      valide: {
+        value: { username: 'Marsianin', password: 'M@k@rony404!' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Пользователь создан',
+    type: User,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Некорректные данные',
+    type: User,
+  })
   @Post('signup')
   async signUp(@Body() authCredentialsDto: AuthCredentialsDto): Promise<User> {
     this.logger.verbose(`User "${authCredentialsDto.username}" signing up`);
     return this.authServise.signUp(authCredentialsDto);
   }
 
+  @ApiOperation({ summary: 'Аутентификация пользователя' })
+  @ApiBody({
+    type: AuthCredentialsDto,
+    examples: {
+      valide: {
+        value: { username: 'Marsianin', password: 'M@k@rony404!' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Успешная идентификация, токен выдан',
+    type: JwtAccessTokenDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Наверный логин или пароль',
+  })
   @Post('signin')
   async signIn(
     @Body() authCredentialsDto: AuthCredentialsDto,
