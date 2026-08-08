@@ -15,9 +15,9 @@ import {
   CreateTaskDto,
   DeleteTaskDto,
   GetTasksFilterDto,
+  TaskResponseDto,
   UpdateTaskStatusDto,
 } from './dto';
-import { Task } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../auth/user.entity';
@@ -43,7 +43,7 @@ export class TasksController {
   @ApiResponse({
     status: 201,
     description: 'Задача создана',
-    type: Task,
+    type: TaskResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -53,7 +53,7 @@ export class TasksController {
   createTask(
     @Body() createTaskDto: CreateTaskDto,
     @GetUser() user: User,
-  ): Promise<Task> {
+  ): Promise<TaskResponseDto> {
     this.logger.verbose(
       `User "${user.username}" creating a new task. Data ${JSON.stringify(createTaskDto)}`,
     );
@@ -69,7 +69,7 @@ export class TasksController {
   @ApiResponse({
     status: 200,
     description: 'Массив задач (может быть пустым)',
-    type: Task,
+    type: TaskResponseDto,
     isArray: true,
   })
   @ApiResponse({
@@ -80,7 +80,7 @@ export class TasksController {
   getTasks(
     @Query() filterDto: GetTasksFilterDto,
     @GetUser() user: User,
-  ): Promise<Task[]> {
+  ): Promise<TaskResponseDto[]> {
     this.logger.verbose(
       `User "${user.username}" retrieving all tasks. Filters: ${JSON.stringify(filterDto)}`,
     );
@@ -98,14 +98,17 @@ export class TasksController {
   @ApiResponse({
     status: 200,
     description: 'Задача найдена',
-    type: Task,
+    type: TaskResponseDto,
   })
   @ApiResponse({
     status: 404,
     description: 'Задача не найдена или не принадлежит пользователю',
   })
   @Get(':id')
-  getTaskById(@Param('id') id: string, @GetUser() user: User): Promise<Task> {
+  getTaskById(
+    @Param('id') id: string,
+    @GetUser() user: User,
+  ): Promise<TaskResponseDto> {
     this.logger.verbose(
       `User "${user.username}" retrieving task with ID "${id}"`,
     );
@@ -150,7 +153,7 @@ export class TasksController {
   @ApiResponse({
     status: 200,
     description: 'Статус обновлён',
-    type: Task,
+    type: TaskResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -165,7 +168,7 @@ export class TasksController {
     @Param('id') id: string,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
     @GetUser() user: User,
-  ): Promise<Task> {
+  ): Promise<TaskResponseDto> {
     this.logger.verbose(
       `User "${user.username}" updating task "${id}" status to "${updateTaskStatusDto.status}"`,
     );
