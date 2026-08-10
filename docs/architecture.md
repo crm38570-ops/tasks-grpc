@@ -53,9 +53,9 @@ HTTP-запрос
 
 ### Модули и DI
 
-- `AppModule` подключает `ConfigModule.forRoot()` с `envFilePath: .env.stage.${STAGE}` и Joi-валидацией (см. [configuration.md](configuration.md)).
+- `AppModule` подключает `ConfigModule.forRoot()` с `envFilePath: .env.stage.${STAGE}` и Joi-валидацией (см. [configuration.md](configuration.md)). Порядок импортов в `AppModule`: ConfigModule, TasksModule, TypeOrmModule, AuthModule.
 - `TypeOrmModule.forRootAsync` настраивается через `ConfigService`; `synchronize: true` — схема БД создаётся автоматически (подходит для разработки).
-- Репозитории (`UsersRepository`, `TasksRepository`) расширяют `Repository<T>` TypeORM — запросы собраны в репозитории, сервисы их не дублируют.
+- Репозитории (`UsersRepository`, `TasksRepository`) расширяют `Repository<T>` TypeORM — сложные запросы собраны в репозиториях; часть простых операций (поиск по id, удаление) сервис выполняет напрямую через стандартные методы репозитория.
 
 ### Безопасность
 

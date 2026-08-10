@@ -25,7 +25,7 @@ yarn install
 cp .env.stage.dev .env.stage.dev
 ```
 
-> Файлы `.env.stage.*` игнорируются git (см. `.gitignore`). Если `STAGE` не задана — приложение не запустится: переменная `STAGE` обязательна (Joi-валидация).
+> Файлы `.env.stage.*` игнорируются git (см. `.gitignore`). Если `STAGE` не задана — приложение не запустится: переменная `STAGE` обязательна (Joi-валидация). Уже лежащие в репозитории `.env.stage.dev` и `.env.stage.prod` — это только локальные образцы; отредактируйте их под свои параметры БД и секреты.
 
 Полный список переменных — в [configuration.md](configuration.md).
 
@@ -53,7 +53,7 @@ yarn run start:prod
 docker compose up -d postgres
 ```
 
-По умолчанию compose создаёт БД `task-management` с логином/паролем `postgres`/`postgres` на порту `5432` — совпадает с `.env.stage.dev`. Если ваши локальные параметры БД другие — поправьте `.env.stage.dev`.
+По умолчанию compose создаёт БД `task-management` с логином/паролем `postgres`/`postgres` на порту `5432`. Обратите внимание: параметры `.env.stage.dev` могут отличаться от compose (в образце пароль `root`) — приведите `.env.stage.dev` в соответствие с вашей БД.
 
 ### Всё приложение в Docker
 

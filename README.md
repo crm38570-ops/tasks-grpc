@@ -53,6 +53,7 @@ yarn run start:dev
 │   ├── interceptors/  # глобальный интерцептор сериализации
 │   ├── app.module.ts  # корневой модуль
 │   ├── config.chema.ts # Joi-схема валидации окружения
+│   ├── swagger-config.ts # конфигурация Swagger-документа
 │   └── main.ts    # точка входа
 ├── docs/          # документация проекта
 ├── Dockerfile     # мультистейджинг-сборка

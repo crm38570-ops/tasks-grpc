@@ -51,6 +51,7 @@ curl -X POST http://localhost:3000/auth/signup \
 | Код | Описание | Тело |
 |---|---|---|
 | `201` | Успешный вход | `{ "accessToken": "<jwt>" }` |
+| `400` | Не прошла валидация (нарушены правила username/password) | сообщение об ошибках валидации |
 | `401` | Неверный логин или пароль | `{ "message": "Please check your login credentials", ... }` |
 
 Полученный токен передавайте в заголовке:
@@ -70,5 +71,5 @@ curl -X POST http://localhost:3000/auth/signin \
 ## Особенности
 
 - Срок жизни токена задаётся `JWT_EXPIRES_IN` (см. [configuration.md](../configuration.md)).
-- Токен содержит `{ username, iat }`, подписан `JWT_SECRET`. Валидацию выполняет `JwtStrategy` (Passport): при каждом запросе к защищённым эндпоинтам пользователь загружается из БД по `username`.
+- Токен содержит `{ username, iat, exp }`, подписан `JWT_SECRET`. Валидацию выполняет `JwtStrategy` (Passport): при каждом запросе к защищённым эндпоинтам пользователь загружается из БД по `username`.
 - Ошибка с кодом PostgreSQL `23505` (unique violation) преобразуется в `409 Conflict` — `UsersRepository.createUser`.
