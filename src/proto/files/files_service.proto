@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package files;
+import "google/protobuf/timestamp.proto";
+
+message FileMetadata {
+  string file_id     = 1;
+  string file_name   = 2;
+  string mime_type   = 3;
+  int64  size        = 4;
+  string task_id     = 5;
+  string user_id     = 6;
+  google.protobuf.Timestamp uploaded_at = 7;
+}
+
+message UploadFileRequest {
+  bytes content          = 1;
+  FileMetadata metadata = 2;
+}
+
+message UploadFileResponse {
+  string file_id = 1;
+}
+
+message ListFilesRequest {
+  string task_id = 1;
+}
+
+message ListFilesResponse {
+  repeated FileMetadata files = 1;
+}
+
+message DeleteFileRequest {
+  string file_id = 1;
+}
+
+message DeleteFileResponse {}
+
+message DownloadFileRequest {
+  string file_id = 1;
+}
+
+message DownloadFileResponse {
+  bytes file = 1;
+}
+
+service FilesService {
+  rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
+  rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFile (DeleteFileRequest) returns (DeleteFileResponse);
+  rpc DownloadFile (DownloadFileRequest) returns (DownloadFileResponse);
+}
