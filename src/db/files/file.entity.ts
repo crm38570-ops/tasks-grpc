@@ -1,0 +1,25 @@
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('file')
+export class FileEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  fileName: string;
+
+  @Column()
+  mimeType: string;
+
+  @Column()
+  size: number;
+
+  @Column()
+  taskId: string;
+
+  @Column()
+  userId: string;
+
+  @Column()
+  uploadedAt: Date;
+}
