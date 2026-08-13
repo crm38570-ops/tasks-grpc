@@ -39,7 +39,7 @@ export class FilesService {
     }
   }
 
-  private fileIdChecker(fileId: string) {
+  private fileIdValidator(fileId: string) {
     if (fileId.includes('..')) {
       const message = 'Некорректный fileId';
       this.logger.warn(message);
@@ -119,7 +119,7 @@ export class FilesService {
 
   @GrpcMethod('FilesService', 'DeleteFile')
   async deleteFile({ fileId }: DeleteFileRequest): Promise<void> {
-    this.fileIdChecker(fileId);
+    this.fileIdValidator(fileId);
 
     try {
       await fs.promises.unlink(join(this.FILE_DIR, fileId));
@@ -143,7 +143,7 @@ export class FilesService {
     fileId,
   }: DownloadFileRequest): Observable<DownloadFileResponse> {
     return defer(() => {
-      this.fileIdChecker(fileId);
+      this.fileIdValidator(fileId);
 
       return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
         map((chunk: Buffer) => ({ file: chunk })),

@@ -17,10 +17,11 @@ export class FilesRepository extends Repository<FileEntity> {
     try {
       return this.save(this.create(fileMetadata));
     } catch (err) {
-      throw new RpcException({
-        code: 13,
-        message: (err as Error).stack,
-      });
+      if (err instanceof RpcException) {
+        throw err;
+      } else {
+        throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
+      }
     }
   }
 
