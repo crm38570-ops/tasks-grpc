@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
@@ -22,6 +26,17 @@ export class FilesService {
 
   constructor(private readonly filesRepository: FilesRepository) {
     this.FILE_DIR = process.env.FILE_DIR!;
+  }
+
+  async onModuleInit(FILE_DIR: string) {
+    try {
+      await fs.promises.mkdir(FILE_DIR, { recursive: true });
+    } catch (err) {
+      const message = `При создании директории произошла непредвиденная ошибка: ${err}`;
+
+      this.logger.error(message);
+      throw new InternalServerErrorException(message);
+    }
   }
 
   private fileIdChecker(fileId: string) {
