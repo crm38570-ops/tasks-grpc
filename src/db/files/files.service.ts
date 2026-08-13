@@ -65,9 +65,9 @@ export class FilesService {
       });
     }
 
-    const { id } = await this.filesRepository.saveFileData(metadata);
+    const { id: fileId } = await this.filesRepository.saveFileData(metadata);
 
-    if (!id) {
+    if (!fileId) {
       const message = 'В процессе сохранения файла произошла ошибка';
       this.logger.error(message);
 
@@ -78,13 +78,13 @@ export class FilesService {
     }
     try {
       await fs.promises.writeFile(
-        join(this.FILE_DIR, id),
+        join(this.FILE_DIR, fileId),
         Buffer.from(content),
       );
 
-      this.logger.log(`Файл с id ${id} успешно сохранён.`);
+      this.logger.log(`Файл с id ${fileId} успешно сохранён.`);
 
-      return { fileId: id };
+      return { fileId };
     } catch (err) {
       const message = `В процессе сохранения файла произошла ошибка`;
 
