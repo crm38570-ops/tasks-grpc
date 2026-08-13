@@ -1,5 +1,5 @@
 import { RpcException } from '@nestjs/microservices';
-import { UploadFileRequest } from '../../../proto/files/generated/files_service';
+import { UploadFileRequest } from '../../proto/files/generated/files_service';
 
 interface IisErrors {
   errors: RpcException | null;

@@ -4,7 +4,7 @@ import { FileEntity } from './file.entity';
 import {
   FileMetadata,
   FileMetadataExtended,
-} from '../../proto/files/generated/files_service';
+} from '../proto/files/generated/files_service';
 import { RpcException } from '@nestjs/microservices';
 
 @Injectable()

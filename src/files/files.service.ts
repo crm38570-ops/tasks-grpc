@@ -11,7 +11,7 @@ import {
   ListFilesResponse,
   UploadFileRequest,
   UploadFileResponse,
-} from '../../proto/files/generated/files_service';
+} from '../proto/files/generated/files_service';
 import fs from 'node:fs';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { FilesRepository } from './files.repository';

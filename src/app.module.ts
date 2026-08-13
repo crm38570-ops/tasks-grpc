@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.schema';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FilesModule } from './db/files/files.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
