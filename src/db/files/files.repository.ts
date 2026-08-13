@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { FileEntity } from './file.entity';
-import { FileMetadata } from '../../proto/files/generated/files_service';
+import {
+  FileMetadata,
+  FileMetadataExtended,
+} from '../../proto/files/generated/files_service';
 import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
@@ -10,7 +13,7 @@ export class FilesRepository extends Repository<FileEntity> {
     super(FileEntity, dataSource.createEntityManager());
   }
 
-  async saveFileData(fileMetadata: FileMetadata): Promise<FileEntity> {
+  async saveFile(fileMetadata: FileMetadata): Promise<FileEntity> {
     try {
       return this.save(this.create(fileMetadata));
     } catch (err) {
@@ -21,7 +24,7 @@ export class FilesRepository extends Repository<FileEntity> {
     }
   }
 
-  async getListFiles(taskId: string): Promise<FileMetadata[]> {
+  async getListFiles(taskId: string): Promise<FileMetadataExtended[]> {
     const query = this.createQueryBuilder('file');
 
     try {

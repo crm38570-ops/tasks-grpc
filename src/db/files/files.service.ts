@@ -65,7 +65,7 @@ export class FilesService {
       });
     }
 
-    const { fileId } = await this.filesRepository.saveFileData(metadata);
+    const { fileId } = await this.filesRepository.saveFile(metadata);
 
     if (!fileId) {
       const message = 'В процессе сохранения файла произошла ошибка';
@@ -107,7 +107,7 @@ export class FilesService {
 
       this.logger.log(`Файлы для taskId ${taskId}: ${files.length} шт.`);
 
-      return { files };
+      return { files: files };
     } catch (err) {
       this.logger.error(
         `Ошибка чтения файла: taskId=${taskId}`,
