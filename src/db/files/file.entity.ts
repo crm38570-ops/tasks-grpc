@@ -8,7 +8,7 @@ import {
 @Entity('file')
 export class FileEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  fileId: string;
 
   @Column()
   fileName: string;

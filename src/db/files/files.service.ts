@@ -65,7 +65,7 @@ export class FilesService {
       });
     }
 
-    const { id: fileId } = await this.filesRepository.saveFileData(metadata);
+    const { fileId } = await this.filesRepository.saveFileData(metadata);
 
     if (!fileId) {
       const message = 'В процессе сохранения файла произошла ошибка';
