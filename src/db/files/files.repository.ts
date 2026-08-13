@@ -16,14 +16,12 @@ export class FilesRepository extends Repository<FileEntity> {
     } catch (err) {
       throw new RpcException({
         code: 13,
-        message: err as string,
+        message: (err as Error).stack,
       });
     }
   }
 
-  async getListFiles({
-    taskId,
-  }: Pick<FileMetadata, 'taskId'>): Promise<FileMetadata[]> {
+  async getListFiles(taskId: string): Promise<FileMetadata[]> {
     const query = this.createQueryBuilder('file');
 
     try {
@@ -32,7 +30,7 @@ export class FilesRepository extends Repository<FileEntity> {
     } catch (err) {
       throw new RpcException({
         code: 5,
-        message: err as string,
+        message: (err as Error).stack,
       });
     }
   }
@@ -43,7 +41,7 @@ export class FilesRepository extends Repository<FileEntity> {
     } catch (err) {
       throw new RpcException({
         code: 13,
-        message: err as string,
+        message: (err as Error).stack,
       });
     }
   }

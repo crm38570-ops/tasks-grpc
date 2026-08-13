@@ -6,7 +6,7 @@ interface IisErrors {
   errors: RpcException | null;
 }
 
-export function UploadFileResValidator(
+export function UploadFileReqValidator(
   data: UploadFileRequest,
 ): IisErrors | undefined {
   const { metadata, content } = data;

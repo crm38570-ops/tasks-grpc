@@ -1,4 +1,9 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('file')
 export class FileEntity {
@@ -17,9 +22,6 @@ export class FileEntity {
   @Column()
   taskId: string;
 
-  @Column()
-  userId: string;
-
-  @Column()
+  @CreateDateColumn()
   uploadedAt: Date;
 }

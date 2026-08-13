@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
+  DownloadFileResponse,
   ListFilesRequest,
   ListFilesResponse,
   UploadFileRequest,
@@ -11,11 +12,13 @@ import fs from 'node:fs';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { FilesRepository } from './files.repository';
 import { join } from 'node:path';
-import { UploadFileResValidator } from './services/upload-file.req.service';
+import { UploadFileReqValidator } from './services/upload-file.req.service';
+import { catchError, defer, from, map, Observable } from 'rxjs';
 
 @Injectable()
 export class FilesService {
   private FILE_DIR: string;
+  private logger = new Logger('FilesService', { timestamp: true });
 
   constructor(private readonly filesRepository: FilesRepository) {
     this.FILE_DIR = process.env.FILE_DIR!;
@@ -23,41 +26,80 @@ export class FilesService {
 
   private fileIdChecker(fileId: string) {
     if (fileId.includes('..')) {
-      throw new RpcException({ code: 3, message: 'Некорректный fileId' });
+      const message = 'Некорректный fileId';
+      this.logger.warn(message);
+      throw new RpcException({ code: 3, message: message });
     }
   }
 
   @GrpcMethod('FilesService', 'UploadFile')
   async uploadFile(data: UploadFileRequest): Promise<UploadFileResponse> {
     const { metadata, content } = data;
-    const isValid = UploadFileResValidator(data);
+    const isValid = UploadFileReqValidator(data);
 
     if (isValid?.errors) throw isValid.errors;
 
     if (!metadata) {
+      const message = 'Переданы некорректные данные в metadata';
+
+      this.logger.warn(message);
+
       throw new RpcException({
         code: 3,
-        message: `Переданы некорректные данные в metadata`,
+        message: message,
       });
     }
 
     const { id } = await this.filesRepository.saveFileData(metadata);
 
-    if (!id)
+    if (!id) {
+      const message = 'В процессе сохранения файла произошла ошибка';
+      this.logger.error(message);
+
+      throw new RpcException({
+        code: 13,
+        message: message,
+      });
+    }
+    try {
+      await fs.promises.writeFile(
+        join(this.FILE_DIR, id),
+        Buffer.from(content),
+      );
+
+      this.logger.log(`Файл с id ${id} успешно сохранён.`);
+
+      return { fileId: id };
+    } catch (err) {
+      const message = `В процессе сохранения файла произошла ошибка`;
+
+      this.logger.error(
+        `${message}: ${(err as Error).stack}`,
+        (err as Error).stack,
+      );
+
       throw new RpcException({
         code: 13,
         message: `В процессе сохранения файла произошла ошибка`,
       });
-
-    await fs.promises.writeFile(join(this.FILE_DIR, id), Buffer.from(content));
-
-    return { fileId: id };
+    }
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
-  async listFiles(taskId: ListFilesRequest): Promise<ListFilesResponse> {
-    const files = await this.filesRepository.getListFiles(taskId);
-    return { files: files };
+  async listFiles({ taskId }: ListFilesRequest): Promise<ListFilesResponse> {
+    try {
+      const files = await this.filesRepository.getListFiles(taskId);
+
+      this.logger.log(`Файлы для taskId ${taskId}: ${files.length} шт.`);
+
+      return { files };
+    } catch (err) {
+      this.logger.error(
+        `Ошибка чтения файла: taskId=${taskId}`,
+        (err as Error).stack,
+      );
+      throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
+    }
   }
 
   @GrpcMethod('FilesService', 'DeleteFile')
@@ -67,23 +109,36 @@ export class FilesService {
     try {
       await fs.promises.unlink(join(this.FILE_DIR, fileId));
       await this.filesRepository.deleteFile(fileId);
+
+      this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
+      this.logger.error(
+        `В процессе удаления файла произошла ошибка: ${(err as Error).stack}`,
+      );
+
       throw new RpcException({
         code: 13,
-        message: `В процессе удаления файла произошла ошибка: ${err}`,
+        message: 'В процессе удаления файла произошла ошибка',
       });
     }
   }
 
   @GrpcMethod('FilesService', 'DownloadFile')
-  async downloadFile({ fileId }: DownloadFileRequest) {
-    this.fileIdChecker(fileId);
+  downloadFile({
+    fileId,
+  }: DownloadFileRequest): Observable<DownloadFileResponse> {
+    return defer(() => {
+      this.fileIdChecker(fileId);
 
-    try {
-      const file = await fs.promises.readFile(join(this.FILE_DIR, fileId));
-      return { file };
-    } catch {
-      throw new RpcException({ code: 5, message: 'Файл не найден' });
-    }
+      return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
+        map((chunk: Buffer) => ({ file: chunk })),
+        catchError((err) => {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+            throw new RpcException({ code: 5, message: 'Файл не найден' });
+          }
+          throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
+        }),
+      );
+    });
   }
 }

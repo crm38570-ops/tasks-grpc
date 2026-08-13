@@ -8,8 +8,7 @@ message FileMetadata {
   string mime_type                      = 2;
   int64  size                           = 3;
   string task_id                        = 4;
-  string user_id                        = 5;
-  google.protobuf.Timestamp uploaded_at = 6;
+  google.protobuf.Timestamp uploaded_at = 5;
 }
 
 message UploadFileRequest {
@@ -47,5 +46,5 @@ service FilesService {
   rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
   rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
   rpc DeleteFile (DeleteFileRequest) returns (DeleteFileResponse);
-  rpc DownloadFile (DownloadFileRequest) returns (DownloadFileResponse);
+  rpc DownloadFile (DownloadFileRequest) returns (stream DownloadFileResponse);
 }
