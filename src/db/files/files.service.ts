@@ -28,9 +28,9 @@ export class FilesService {
     this.FILE_DIR = process.env.FILE_DIR!;
   }
 
-  async onModuleInit(FILE_DIR: string) {
+  async onModuleInit() {
     try {
-      await fs.promises.mkdir(FILE_DIR, { recursive: true });
+      await fs.promises.mkdir(this.FILE_DIR, { recursive: true });
     } catch (err) {
       const message = `При создании директории произошла непредвиденная ошибка: ${err}`;
 
