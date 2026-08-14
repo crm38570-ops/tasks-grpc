@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   DeleteFileRequest,
@@ -16,7 +17,7 @@ import fs from 'node:fs';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { FilesRepository } from './files.repository';
 import { join } from 'node:path';
-import { UploadFileReqValidator } from './services/upload-file.req.service';
+import { UploadFileReqValidator } from './services/upload-file.req.validator';
 import { catchError, defer, from, map, Observable } from 'rxjs';
 
 @Injectable()
@@ -48,7 +49,7 @@ export class FilesService {
   }
 
   @GrpcMethod('FilesService', 'UploadFile')
-  async uploadFile(data: UploadFileRequest): Promise<UploadFileResponse> {
+  async saveFile(data: UploadFileRequest): Promise<UploadFileResponse> {
     const { metadata, content } = data;
     const isValid = UploadFileReqValidator(data);
 
@@ -101,14 +102,19 @@ export class FilesService {
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
-  async listFiles({ taskId }: ListFilesRequest): Promise<ListFilesResponse> {
+  async getListFiles({ taskId }: ListFilesRequest): Promise<ListFilesResponse> {
     try {
       const files = await this.filesRepository.getListFiles(taskId);
 
       this.logger.log(`Файлы для taskId ${taskId}: ${files.length} шт.`);
 
+      if (!files.length)
+        throw new NotFoundException('Для данной задачи нет подходящих файлов');
+
       return { files: files };
     } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+
       this.logger.error(
         `Ошибка чтения файла: taskId=${taskId}`,
         (err as Error).stack,
