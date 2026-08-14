@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { FilesRepository } from './files.repository';
 import { join } from 'node:path';
-import { UploadFileReqValidator } from './services/upload-file.req.service';
+import { UploadFileReqValidator } from './services/upload-file.req.validator';
 import { catchError, defer, from, map, Observable } from 'rxjs';
 
 @Injectable()
