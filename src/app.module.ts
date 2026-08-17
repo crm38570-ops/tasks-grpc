@@ -4,6 +4,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { configValidationSchema } from './config.chema';
       }),
     }),
     AuthModule,
+    FilesModule,
   ],
   controllers: [],
   providers: [],
