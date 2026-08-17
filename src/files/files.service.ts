@@ -152,7 +152,7 @@ export class FilesService {
       this.fileIdValidator(fileId);
 
       return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
-        map((chunk: Buffer) => ({ file: chunk })),
+        map((chunk: Buffer) => ({ chunk })),
         catchError((err) => {
           if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
             throw new RpcException({ code: 5, message: 'Файл не найден' });

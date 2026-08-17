@@ -23,5 +23,5 @@ export class FileEntity {
   taskId: string;
 
   @CreateDateColumn()
-  uploadedAt: Date;
+  uploadedAt: string;
 }
