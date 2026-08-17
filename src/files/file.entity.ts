@@ -22,6 +22,9 @@ export class FileEntity {
   @Column()
   taskId: string;
 
+  @Column()
+  userId: string;
+
   @CreateDateColumn()
   uploadedAt: string;
 }
