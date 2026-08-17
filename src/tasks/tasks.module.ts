@@ -10,5 +10,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [TypeOrmModule.forFeature([Task]), AuthModule],
   controllers: [TasksController],
   providers: [TasksService, TasksRepository],
+  exports: [TasksService],
 })
 export class TasksModule {}

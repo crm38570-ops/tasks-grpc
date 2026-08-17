@@ -34,11 +34,11 @@ export class FilesClientService implements OnModuleInit {
     return this.filesService.listFiles(request);
   }
 
-  deleteFile(request: DeleteFileRequest): Observable<DeleteFileResponse> {
-    return this.filesService.deleteFile(request);
-  }
-
   downloadFile(request: DownloadFileRequest): Observable<DownloadFileResponse> {
     return this.filesService.downloadFile(request);
+  }
+
+  deleteFile(request: DeleteFileRequest): Observable<DeleteFileResponse> {
+    return this.filesService.deleteFile(request);
   }
 }
