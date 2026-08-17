@@ -10,4 +10,6 @@ export const configValidationSchema = Joi.object({
 
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().required(),
+
+  FILES_GRPC_URL: Joi.string().required(),
 });

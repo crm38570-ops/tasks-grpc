@@ -13,7 +13,7 @@ import { User } from '../auth/user.entity';
 export class TasksRepository extends Repository<Task> {
   private logger = new Logger(`TaskRepository`, { timestamp: true });
 
-  constructor(private dataSource: DataSource) {
+  constructor(private readonly dataSource: DataSource) {
     super(Task, dataSource.createEntityManager());
   }
 

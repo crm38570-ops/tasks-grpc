@@ -4,6 +4,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { configValidationSchema } from './config.chema';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: process.env.STAGE === 'prod' ? false : true,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),
@@ -27,6 +28,7 @@ import { configValidationSchema } from './config.chema';
       }),
     }),
     AuthModule,
+    FilesModule,
   ],
   controllers: [],
   providers: [],
