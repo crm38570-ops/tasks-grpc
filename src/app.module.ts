@@ -19,7 +19,7 @@ import { FilesModule } from './files/files.module';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: process.env.STAGE === 'prod' ? false : true,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),
