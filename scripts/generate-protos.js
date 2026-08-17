@@ -9,10 +9,16 @@ const win = process.platform === 'win32';
 const rel = (p) => './' + path.relative(root, p).replace(/\\/g, '/');
 const relWin = (p) => '.' + path.sep + path.relative(root, p);
 
-const protoc = rel(path.join('node_modules', 'grpc-tools', 'bin', `protoc${win ? '.exe' : ''}`));
+const protoc = rel(
+  path.join('node_modules', 'grpc-tools', 'bin', `protoc${win ? '.exe' : ''}`),
+);
 const include = rel(path.join('node_modules', 'grpc-tools', 'bin'));
 const plugin = (win ? relWin : rel)(
-  path.join('node_modules', '.bin', win ? 'protoc-gen-ts_proto.cmd' : 'protoc-gen-ts_proto'),
+  path.join(
+    'node_modules',
+    '.bin',
+    win ? 'protoc-gen-ts_proto.cmd' : 'protoc-gen-ts_proto',
+  ),
 );
 
 function findProtos(dir, acc = []) {
@@ -34,12 +40,14 @@ for (const proto of findProtos(path.join('src', 'proto'))) {
     [
       `--plugin=protoc-gen-ts_proto=${plugin}`,
       `--ts_proto_out=${rel(outDir)}`,
-      '--ts_proto_opt=outputServices=grpc-js',
+      '--ts_proto_opt=nestJs=true',
       `--proto_path=${rel(moduleDir)}`,
       `--proto_path=${include}`,
       rel(proto),
     ],
     { stdio: 'inherit' },
   );
-  console.log(`generated: ${path.relative(root, proto)} -> ${path.relative(root, outDir)}`);
+  console.log(
+    `generated: ${path.relative(root, proto)} -> ${path.relative(root, outDir)}`,
+  );
 }
