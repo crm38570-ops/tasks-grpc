@@ -10,14 +10,15 @@ import { Observable } from "rxjs";
 
 export const protobufPackage = "files";
 
-export interface FileMetadata {
+export interface FileMetadataRequest {
   fileName: string;
   mimeType: string;
   size: number;
   taskId: string;
+  userId: string;
 }
 
-export interface FileMetadataExtended {
+export interface FileMetadataResponse {
   fileId: string;
   fileName: string;
   mimeType: string;
@@ -28,7 +29,7 @@ export interface FileMetadataExtended {
 
 export interface UploadFileRequest {
   content: Uint8Array;
-  metadata: FileMetadata | undefined;
+  metadata: FileMetadataRequest | undefined;
 }
 
 export interface UploadFileResponse {
@@ -37,14 +38,16 @@ export interface UploadFileResponse {
 
 export interface ListFilesRequest {
   taskId: string;
+  userId: string;
 }
 
 export interface ListFilesResponse {
-  files: FileMetadataExtended[];
+  files: FileMetadataResponse[];
 }
 
 export interface DeleteFileRequest {
   fileId: string;
+  userId: string;
 }
 
 export interface DeleteFileResponse {
@@ -52,6 +55,7 @@ export interface DeleteFileResponse {
 
 export interface DownloadFileRequest {
   fileId: string;
+  userId: string;
 }
 
 export interface DownloadFileResponse {

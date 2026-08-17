@@ -5,9 +5,13 @@ import { join } from 'node:path';
 import { FilesClientService } from './files-client.service';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
+import { TasksModule } from '../tasks/tasks.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
+    TasksModule,
+    AuthModule,
     ClientsModule.registerAsync([
       {
         imports: [ConfigModule],
