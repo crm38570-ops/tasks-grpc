@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import {
+import type {
   DeleteFileRequest,
   DownloadFileRequest,
   DownloadFileResponse,
@@ -111,7 +111,7 @@ export class FilesService {
       if (!files.length)
         throw new NotFoundException('Для данной задачи нет подходящих файлов');
 
-      return { files: files };
+      return { files };
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
 
