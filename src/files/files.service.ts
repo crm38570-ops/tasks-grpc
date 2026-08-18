@@ -102,18 +102,25 @@ export class FilesService {
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
-  async getListFiles({ taskId }: ListFilesRequest): Promise<ListFilesResponse> {
+  async getListFiles(
+    listFilesRequest: ListFilesRequest,
+  ): Promise<ListFilesResponse> {
+    const { taskId } = listFilesRequest;
+
     try {
-      const files = await this.filesRepository.getListFiles(taskId);
+      const files = await this.filesRepository.getListFiles(listFilesRequest);
 
       this.logger.log(`Файлы для taskId ${taskId}: ${files.length} шт.`);
 
-      if (!files.length)
-        throw new NotFoundException('Для данной задачи нет подходящих файлов');
+      if (!files.length) throw new NotFoundException();
 
       return { files };
     } catch (err) {
-      if (err instanceof NotFoundException) throw err;
+      if (err instanceof NotFoundException)
+        throw new RpcException({
+          code: 5,
+          message: `Для данной задачи нет подходящих файлов`,
+        });
 
       this.logger.error(
         `Ошибка чтения файла: taskId=${taskId}`,
@@ -124,12 +131,14 @@ export class FilesService {
   }
 
   @GrpcMethod('FilesService', 'DeleteFile')
-  async deleteFile({ fileId }: DeleteFileRequest): Promise<void> {
+  async deleteFile(deleteFileRequest: DeleteFileRequest): Promise<void> {
+    const { fileId } = deleteFileRequest;
+
     this.fileIdValidator(fileId);
 
     try {
+      await this.filesRepository.deleteFile(deleteFileRequest);
       await fs.promises.unlink(join(this.FILE_DIR, fileId));
-      await this.filesRepository.deleteFile(fileId);
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
@@ -137,18 +146,26 @@ export class FilesService {
         `В процессе удаления файла произошла ошибка: ${(err as Error).stack}`,
       );
 
+      if (err instanceof RpcException) {
+        throw err;
+      }
+
       throw new RpcException({
         code: 13,
-        message: 'В процессе удаления файла произошла ошибка',
+        message: 'Ошибка удаления файла',
       });
     }
   }
 
   @GrpcMethod('FilesService', 'DownloadFile')
-  downloadFile({
-    fileId,
-  }: DownloadFileRequest): Observable<DownloadFileResponse> {
+  async downloadFile(
+    downloadFileRequest: DownloadFileRequest,
+  ): Promise<Observable<DownloadFileResponse>> {
+    await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
+
     return defer(() => {
+      const { fileId } = downloadFileRequest;
+
       this.fileIdValidator(fileId);
 
       return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(

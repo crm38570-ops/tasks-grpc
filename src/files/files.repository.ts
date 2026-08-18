@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { FileEntity } from './file.entity';
 import {
-  FileMetadata,
-  FileMetadataExtended,
+  DeleteFileRequest,
+  DownloadFileRequest,
+  FileMetadataRequest,
+  FileMetadataResponse,
+  ListFilesRequest,
 } from '../proto/files/generated/files_service';
 import { RpcException } from '@nestjs/microservices';
 
@@ -13,9 +16,11 @@ export class FilesRepository extends Repository<FileEntity> {
     super(FileEntity, dataSource.createEntityManager());
   }
 
-  async saveFile(fileMetadata: FileMetadata): Promise<FileEntity> {
+  async saveFile(
+    fileMetadataRequest: FileMetadataRequest,
+  ): Promise<FileEntity> {
     try {
-      return this.save(this.create(fileMetadata));
+      return await this.save(this.create(fileMetadataRequest));
     } catch (err) {
       if (err instanceof RpcException) {
         throw err;
@@ -25,11 +30,13 @@ export class FilesRepository extends Repository<FileEntity> {
     }
   }
 
-  async getListFiles(taskId: string): Promise<FileMetadataExtended[]> {
+  async getListFiles(
+    listFilesRequest: ListFilesRequest,
+  ): Promise<FileMetadataResponse[]> {
     const query = this.createQueryBuilder('file');
 
     try {
-      const result = await query.where({ taskId }).getMany();
+      const result = await query.where({ ...listFilesRequest }).getMany();
       return result;
     } catch (err) {
       throw new RpcException({
@@ -39,14 +46,32 @@ export class FilesRepository extends Repository<FileEntity> {
     }
   }
 
-  async deleteFile(fileId: string) {
+  async deleteFile(deleteFileRequest: DeleteFileRequest): Promise<void> {
     try {
-      await this.delete(fileId);
+      const result = await this.delete({ ...deleteFileRequest });
+
+      if (!result.affected)
+        throw new NotFoundException(
+          `Файл с ID: ${deleteFileRequest.fileId} не найден`,
+        );
     } catch (err) {
       throw new RpcException({
-        code: 13,
+        code: err instanceof NotFoundException ? 5 : 13,
         message: (err as Error).stack,
       });
     }
+  }
+
+  async downloadFileVerifyUser(
+    downloadFileRequest: DownloadFileRequest,
+  ): Promise<void> {
+    const found = await this.createQueryBuilder('file')
+      .where({ ...downloadFileRequest })
+      .getOne();
+
+    if (!found)
+      throw new NotFoundException(
+        `Файл с ID: ${downloadFileRequest.fileId} не найден`,
+      );
   }
 }

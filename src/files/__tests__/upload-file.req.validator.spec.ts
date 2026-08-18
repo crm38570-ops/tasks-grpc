@@ -20,12 +20,7 @@ describe('UploadFileReqValidator', () => {
   it('Возвращает ошибку, если content пуст', () => {
     const result = UploadFileReqValidator({
       content: Buffer.from(''),
-      metadata: {
-        fileName: 'some_name',
-        mimeType: 'png',
-        size: 123432,
-        taskId: 'some_id',
-      },
+      metadata: mockMetadata,
     });
 
     expect(result?.errors).toBeInstanceOf(RpcException);
@@ -39,13 +34,16 @@ describe('UploadFileReqValidator', () => {
   it('Возвращает undefined, если всё хорошо', () => {
     const result = UploadFileReqValidator({
       content: Buffer.from('x'),
-      metadata: {
-        fileName: 'some_name',
-        mimeType: 'png',
-        size: 123432,
-        taskId: 'some_id',
-      },
+      metadata: mockMetadata,
     });
     expect(result).toEqual(undefined);
   });
+
+  const mockMetadata = {
+    fileName: 'some_name',
+    mimeType: 'png',
+    size: 123432,
+    taskId: 'some_id',
+    userId: '123',
+  };
 });

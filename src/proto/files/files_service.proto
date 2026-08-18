@@ -7,7 +7,7 @@ message FileMetadataRequest {
   string mime_type                      = 2;
   int64  size                           = 3;
   string task_id                        = 4;
-  string user_id                        = 5;
+  string user_id                        = 5; // Проверить, нужно ли это поле
 }
 
 message FileMetadataResponse {
@@ -16,7 +16,7 @@ message FileMetadataResponse {
   string mime_type                      = 3;
   int64  size                           = 4;
   string task_id                        = 5;
-  string uploaded_at = 6;
+  string uploaded_at                    = 6;
 }
 
 message UploadFileRequest {
