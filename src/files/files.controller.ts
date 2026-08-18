@@ -22,12 +22,43 @@ import { AuthGuard } from '@nestjs/passport';
 import { User } from '../auth/user.entity';
 import { GetUser } from '../auth/get-user.decorator';
 import { UploadFileDto } from './dto/upload-file.dto';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiProduces,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileIdParamDto } from './dto/file-id.param.dto';
+import { TaskIdQueryDto } from './dto/task-id.query.dto';
+import { ListFilesResponseDto } from './dto/list-files.response.dto';
+import { UploadFileResponseDto } from './dto/upload-file.response.dto';
 
+@ApiTags('Files')
+@ApiBearerAuth()
 @Controller('files')
 @UseGuards(AuthGuard())
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  @ApiOperation({
+    summary: 'Загрузка файла',
+    description:
+      'Временный JSON-формат загрузки. Multipart-загрузка будет добавлена позже.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Файл успешно загружен',
+    type: UploadFileResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные файла или задачи',
+  })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Задача не найдена или недоступна' })
   @Post('upload')
   async uploadFile(
     @Body() uploadFileDto: UploadFileDto,
@@ -36,6 +67,19 @@ export class FilesController {
     return this.filesService.uploadFile(uploadFileDto, user);
   }
 
+  @ApiOperation({ summary: 'Получение списка файлов задачи' })
+  @ApiQuery({
+    name: 'taskId',
+    type: String,
+    format: 'uuid',
+    description: 'Идентификатор задачи в формате UUID v4',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список файлов задачи',
+    type: ListFilesResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
   async listFiles(
     @Query() listFilesRequest: ListFilesReqDto,
@@ -44,20 +88,66 @@ export class FilesController {
     return this.filesService.listFiles(listFilesRequest, user);
   }
 
+  @ApiOperation({ summary: 'Скачивание файла' })
+  @ApiProduces('application/octet-stream')
+  @ApiParam({
+    name: 'fileId',
+    type: String,
+    format: 'uuid',
+    description: 'Идентификатор файла в формате UUID v4',
+  })
+  @ApiQuery({
+    name: 'taskId',
+    type: String,
+    format: 'uuid',
+    description: 'Идентификатор задачи в формате UUID v4',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Бинарное содержимое файла',
+    content: {
+      'application/octet-stream': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Файл или задача не найдены' })
   @Get(':fileId')
   downloadFile(
-    @Param() downloadFileReqDto: DownloadFileReqDto,
+    @Param() { fileId }: FileIdParamDto,
+    @Query() { taskId }: TaskIdQueryDto,
     @GetUser() user: User,
   ): Promise<StreamableFile> {
+    const downloadFileReqDto: DownloadFileReqDto = { fileId, taskId };
+
     return this.filesService.downloadFile(downloadFileReqDto, user);
   }
 
+  @ApiOperation({ summary: 'Удаление файла' })
+  @ApiParam({
+    name: 'fileId',
+    type: String,
+    format: 'uuid',
+    description: 'Идентификатор файла в формате UUID v4',
+  })
+  @ApiQuery({
+    name: 'taskId',
+    type: String,
+    format: 'uuid',
+    description: 'Идентификатор задачи в формате UUID v4',
+  })
+  @ApiResponse({ status: 200, description: 'Файл успешно удалён' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Файл или задача не найдены' })
   @Delete(':fileId')
   async deleteFile(
-    @Param()
-    deleteFileReqDto: DeleteFileReqDto,
+    @Param() { fileId }: FileIdParamDto,
+    @Query() { taskId }: TaskIdQueryDto,
     @GetUser() user: User,
   ): Promise<DeleteFileResponse> {
+    const deleteFileReqDto: DeleteFileReqDto = { fileId, taskId };
+
     return this.filesService.deleteFile(deleteFileReqDto, user);
   }
 }
