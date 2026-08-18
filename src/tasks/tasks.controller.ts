@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Logger,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import {
@@ -49,6 +50,7 @@ export class TasksController {
     status: 400,
     description: 'Некорректные данные: пустой title или description',
   })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Post()
   createTask(
     @Body() createTaskDto: CreateTaskDto,
@@ -76,6 +78,7 @@ export class TasksController {
     status: 400,
     description: 'Некорректные query-параметры',
   })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
   getTasks(
     @Query() filterDto: GetTasksFilterDto,
@@ -104,9 +107,10 @@ export class TasksController {
     status: 404,
     description: 'Задача не найдена или не принадлежит пользователю',
   })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get(':id')
   getTaskById(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @GetUser() user: User,
   ): Promise<TaskResponseDto> {
     this.logger.verbose(
@@ -131,6 +135,7 @@ export class TasksController {
     status: 404,
     description: 'Задача не найдена или не принадлежит пользователю',
   })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Delete(':id')
   deleteTaskById(
     @Param() id: DeleteTaskDto,
@@ -163,9 +168,10 @@ export class TasksController {
     status: 404,
     description: 'Задача не найдена или не принадлежит пользователю',
   })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Patch(':id/status')
   update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
     @GetUser() user: User,
   ): Promise<TaskResponseDto> {
