@@ -1,4 +1,4 @@
-import { firstValueFrom, map } from 'rxjs';
+import { catchError, firstValueFrom, map, throwError } from 'rxjs';
 import {
   DeleteFileResponse,
   ListFilesResponse,
@@ -22,6 +22,16 @@ export class FilesService {
     private readonly tasksService: TasksService,
   ) {}
 
+  private handleFileError(error: unknown): never {
+    const grpcError = error as { code?: number };
+
+    if (grpcError.code === 5) {
+      throw new NotFoundException('Файл не найден');
+    }
+
+    throw error;
+  }
+
   async uploadFile(
     uploadFileDto: UploadFileDto,
     user: User,
@@ -44,9 +54,13 @@ export class FilesService {
     { taskId }: ListFilesReqDto,
     user: User,
   ): Promise<ListFilesResponse> {
-    return firstValueFrom(
-      this.filesClientService.listFiles({ taskId, userId: user.id }),
-    );
+    try {
+      return await firstValueFrom(
+        this.filesClientService.listFiles({ taskId, userId: user.id }),
+      );
+    } catch (err) {
+      this.handleFileError(err);
+    }
   }
 
   async downloadFile(
@@ -57,11 +71,30 @@ export class FilesService {
 
     await this.validateUserTask(taskId, user);
 
+    const filesResponse = await this.listFiles({ taskId }, user);
+
+    const hasAccess = filesResponse.files.some(
+      (file) => file.fileId === fileId,
+    );
+
+    if (!hasAccess) {
+      throw new NotFoundException('Файл не найден');
+    }
+
     const fileReadableStream = Readable.from(
       eachValueFrom(
-        this.filesClientService
-          .downloadFile({ fileId, userId: user.id })
-          .pipe(map(({ chunk }) => chunk)),
+        this.filesClientService.downloadFile({ fileId, userId: user.id }).pipe(
+          map(({ chunk }) => chunk),
+          catchError((error: unknown) => {
+            const grpcError = error as { code?: number };
+
+            if (grpcError.code === 5) {
+              return throwError(() => new NotFoundException('Файл не найден'));
+            }
+
+            return throwError(() => error);
+          }),
+        ),
       ),
     );
 
@@ -76,9 +109,13 @@ export class FilesService {
 
     await this.validateUserTask(taskId, user);
 
-    return firstValueFrom(
-      this.filesClientService.deleteFile({ fileId, userId: user.id }),
-    );
+    try {
+      return await firstValueFrom(
+        this.filesClientService.deleteFile({ fileId, userId: user.id }),
+      );
+    } catch (err) {
+      this.handleFileError(err);
+    }
   }
 
   async validateUserTask(taskId: string, user: User) {
