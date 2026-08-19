@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package files;
+
+message FileMetadataRequest {
+  string file_name                      = 1;
+  string mime_type                      = 2;
+  int64  size                           = 3;
+  string task_id                        = 4;
+  string user_id                        = 5; // Проверить, нужно ли это поле
+}
+
+message FileMetadataResponse {
+  string file_id                        = 1;
+  string file_name                      = 2;
+  string mime_type                      = 3;
+  int64  size                           = 4;
+  string task_id                        = 5;
+  string uploaded_at                    = 6;
+}
+
+message UploadFileRequest {
+  bytes content                = 1;
+  FileMetadataRequest metadata = 2;
+}
+
+message UploadFileResponse {
+  string file_id = 1;
+}
+
+message ListFilesRequest {
+  string task_id = 1;
+  string user_id = 2;
+}
+
+message ListFilesResponse {
+  repeated FileMetadataResponse files = 1;
+}
+
+message DeleteFileRequest {
+  string file_id = 1;
+  string user_id = 2;
+}
+
+message DeleteFileResponse {}
+
+message DownloadFileRequest {
+  string file_id = 1;
+  string user_id = 2;
+}
+
+message DownloadFileResponse {
+  bytes chunk = 1;
+}
+
+service FilesService {
+  rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
+  rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFile (DeleteFileRequest) returns (DeleteFileResponse);
+  rpc DownloadFile (DownloadFileRequest) returns (stream DownloadFileResponse);
+}
