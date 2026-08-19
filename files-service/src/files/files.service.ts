@@ -51,6 +51,9 @@ export class FilesService {
   @GrpcMethod('FilesService', 'UploadFile')
   async saveFile(data: UploadFileRequest): Promise<UploadFileResponse> {
     const { metadata, content } = data;
+    this.logger.log(
+      `Upload started: userId=${metadata?.userId}, taskId=${metadata?.taskId}, size=${content?.length ?? 0}`,
+    );
     const isValid = UploadFileReqValidator(data);
 
     if (isValid?.errors) throw isValid.errors;
@@ -111,6 +114,7 @@ export class FilesService {
     listFilesRequest: ListFilesRequest,
   ): Promise<ListFilesResponse> {
     const { taskId } = listFilesRequest;
+    this.logger.log(`List started: taskId=${taskId}`);
 
     try {
       const files = await this.filesRepository.getListFiles(listFilesRequest);
@@ -138,6 +142,7 @@ export class FilesService {
   @GrpcMethod('FilesService', 'DeleteFile')
   async deleteFile(deleteFileRequest: DeleteFileRequest): Promise<void> {
     const { fileId } = deleteFileRequest;
+    this.logger.log(`Delete started: fileId=${fileId}`);
 
     this.fileIdValidator(fileId);
 
@@ -166,12 +171,16 @@ export class FilesService {
   async downloadFile(
     downloadFileRequest: DownloadFileRequest,
   ): Promise<Observable<DownloadFileResponse>> {
+    this.logger.log(
+      `Download started: userId=${downloadFileRequest.userId}, fileId=${downloadFileRequest.fileId}`,
+    );
     await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
 
     return defer(() => {
       const { fileId } = downloadFileRequest;
 
       this.fileIdValidator(fileId);
+      this.logger.log(`Download stream opened: fileId=${fileId}`);
 
       return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
         map((chunk: Buffer) => ({ chunk })),

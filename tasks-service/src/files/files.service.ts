@@ -6,7 +6,12 @@ import {
 } from '../proto/files/generated/files_service';
 import { FilesClientService } from './files-client.service';
 import { eachValueFrom } from 'rxjs-for-await';
-import { Injectable, NotFoundException, StreamableFile } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  StreamableFile,
+} from '@nestjs/common';
 import { Readable } from 'node:stream';
 import { User } from '../auth/user.entity';
 import { UploadFileDto } from './dto/upload-file.dto';
@@ -17,6 +22,8 @@ import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger('FilesService');
+
   constructor(
     private readonly filesClientService: FilesClientService,
     private readonly tasksService: TasksService,
@@ -38,6 +45,8 @@ export class FilesService {
   ): Promise<UploadFileResponse> {
     const { taskId } = uploadFileDto.metadata;
 
+    this.logger.log(`Upload started: userId=${user.id}, taskId=${taskId}`);
+
     await this.validateUserTask(taskId, user);
 
     const uploadFileRequest = {
@@ -45,20 +54,44 @@ export class FilesService {
       metadata: { ...uploadFileDto.metadata, userId: user.id },
     };
 
-    return firstValueFrom(
-      this.filesClientService.uploadFile(uploadFileRequest),
-    );
+    try {
+      const response = await firstValueFrom(
+        this.filesClientService.uploadFile(uploadFileRequest),
+      );
+
+      this.logger.log(
+        `Upload completed: userId=${user.id}, taskId=${taskId}, fileId=${response.fileId}`,
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(
+        `Upload failed: userId=${user.id}, taskId=${taskId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   async listFiles(
     { taskId }: ListFilesReqDto,
     user: User,
   ): Promise<ListFilesResponse> {
+    this.logger.log(`List started: userId=${user.id}, taskId=${taskId}`);
+
     try {
-      return await firstValueFrom(
+      const response = await firstValueFrom(
         this.filesClientService.listFiles({ taskId, userId: user.id }),
       );
+
+      this.logger.log(
+        `List completed: userId=${user.id}, taskId=${taskId}, count=${response.files.length}`,
+      );
+      return response;
     } catch (err) {
+      this.logger.error(
+        `List failed: userId=${user.id}, taskId=${taskId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       this.handleFileError(err);
     }
   }
@@ -68,6 +101,10 @@ export class FilesService {
     user: User,
   ): Promise<StreamableFile> {
     const { fileId, taskId } = downloadFileDto;
+
+    this.logger.log(
+      `Download started: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+    );
 
     await this.validateUserTask(taskId, user);
 
@@ -86,6 +123,10 @@ export class FilesService {
         this.filesClientService.downloadFile({ fileId, userId: user.id }).pipe(
           map(({ chunk }) => chunk),
           catchError((error: unknown) => {
+            this.logger.error(
+              `Download failed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+              error instanceof Error ? error.stack : String(error),
+            );
             const grpcError = error as { code?: number };
 
             if (grpcError.code === 5) {
@@ -107,13 +148,26 @@ export class FilesService {
   ): Promise<DeleteFileResponse> {
     const { taskId, fileId } = deleteFileDto;
 
+    this.logger.log(
+      `Delete started: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+    );
+
     await this.validateUserTask(taskId, user);
 
     try {
-      return await firstValueFrom(
+      const response = await firstValueFrom(
         this.filesClientService.deleteFile({ fileId, userId: user.id }),
       );
+
+      this.logger.log(
+        `Delete completed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+      );
+      return response;
     } catch (err) {
+      this.logger.error(
+        `Delete failed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       this.handleFileError(err);
     }
   }
