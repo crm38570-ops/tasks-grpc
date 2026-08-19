@@ -1,19 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsUUID } from 'class-validator';
 
-export class UploadFileDto {
-  @ApiProperty({
-    type: [Number],
-    example: [72, 101, 108, 108, 111],
-    description:
-      'Временный формат: содержимое файла в виде массива байтов. Multipart-загрузка будет добавлена позже.',
-  })
-  content: Uint8Array<ArrayBuffer | SharedArrayBuffer>;
-
-  @ApiProperty({ type: () => Metadata })
-  metadata: Metadata;
-}
-
 export class Metadata {
   @ApiProperty({ example: 'hello.txt', description: 'Имя файла' })
   @IsString()
@@ -35,4 +22,17 @@ export class Metadata {
   @IsString()
   @IsUUID(4)
   taskId: string;
+}
+
+export class UploadFileDto {
+  @ApiProperty({
+    type: [Number],
+    example: [72, 101, 108, 108, 111],
+    description:
+      'Временный формат: содержимое файла в виде массива байтов. Multipart-загрузка будет добавлена позже.',
+  })
+  content: Uint8Array<ArrayBuffer | SharedArrayBuffer>;
+
+  @ApiProperty({ type: () => Metadata })
+  metadata: Metadata;
 }
