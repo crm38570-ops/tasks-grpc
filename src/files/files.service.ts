@@ -66,7 +66,12 @@ export class FilesService {
       });
     }
 
-    const { fileId } = await this.filesRepository.saveFile(metadata);
+    const normalizedMetadata = {
+      ...metadata,
+      size: Number(metadata.size),
+    };
+
+    const { fileId } = await this.filesRepository.saveFile(normalizedMetadata);
 
     if (!fileId) {
       const message = 'В процессе сохранения файла произошла ошибка';
