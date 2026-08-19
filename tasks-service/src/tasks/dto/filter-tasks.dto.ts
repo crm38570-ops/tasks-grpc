@@ -11,12 +11,12 @@ export class GetTasksFilterDto {
   })
   @IsOptional()
   @IsEnum(TaskStatus)
-  status: TaskStatus;
+  status?: TaskStatus;
 
   @ApiProperty({
     example: 'капибары',
     description: 'Ищет совпадения по title или desription задачи',
   })
   @IsOptional()
-  searchQuery: string;
+  searchQuery?: string;
 }
