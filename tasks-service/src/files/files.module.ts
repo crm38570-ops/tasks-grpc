@@ -23,6 +23,9 @@ import { AuthModule } from '../auth/auth.module';
             package: 'files',
             protoPath: join(__dirname, '../proto/files/files_service.proto'),
             url: cfg.get('FILES_GRPC_URL') as string,
+            loader: {
+              longs: Number,
+            },
           },
         }),
       },
