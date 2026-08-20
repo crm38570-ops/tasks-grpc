@@ -3,3 +3,7 @@
 !.env.example
 
 test/downloaded-*.jpg
+
+*.jpg
+*.jpeg
+*.png
