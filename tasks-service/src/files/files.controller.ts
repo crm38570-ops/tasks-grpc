@@ -7,7 +7,9 @@ import {
   Post,
   Query,
   StreamableFile,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import type {
@@ -21,9 +23,9 @@ import { ListFilesReqDto } from './dto/list-files.req.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '../auth/user.entity';
 import { GetUser } from '../auth/get-user.decorator';
-import { UploadFileDto } from './dto/upload-file.dto';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiProduces,
@@ -35,6 +37,11 @@ import { FileIdParamDto } from './dto/file-id.param.dto';
 import { TaskIdQueryDto } from './dto/task-id.query.dto';
 import { ListFilesResponseDto } from './dto/list-files.response.dto';
 import { UploadFileResponseDto } from './dto/upload-file.response.dto';
+import { UploadFileDto } from './dto/upload-file.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import multer from 'multer';
+import { BadRequestException } from '@nestjs/common';
+import type { Express } from 'express';
 
 @ApiTags('Files')
 @ApiBearerAuth()
@@ -60,11 +67,39 @@ export class FilesController {
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiResponse({ status: 404, description: 'Задача не найдена или недоступна' })
   @Post('upload')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+    }),
+  )
   async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
     @Body() uploadFileDto: UploadFileDto,
     @GetUser() user: User,
   ): Promise<UploadFileResponse> {
-    return this.filesService.uploadFile(uploadFileDto, user);
+    if (!file) {
+      throw new BadRequestException('Файл обязателен');
+    }
+
+    const { buffer, originalname, mimetype, size } = file;
+    const { taskId } = uploadFileDto;
+
+    return this.filesService.uploadFile(
+      {
+        content: buffer,
+        metadata: {
+          fileName: originalname,
+          mimeType: mimetype,
+          size: size,
+          taskId,
+        },
+      },
+      user,
+    );
   }
 
   @ApiOperation({ summary: 'Получение списка файлов задачи' })

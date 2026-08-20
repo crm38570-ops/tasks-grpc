@@ -2,11 +2,13 @@ import { catchError, firstValueFrom, map, throwError } from 'rxjs';
 import {
   DeleteFileResponse,
   ListFilesResponse,
+  UploadFileRequest,
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
 import { FilesClientService } from './files-client.service';
 import { eachValueFrom } from 'rxjs-for-await';
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -14,11 +16,11 @@ import {
 } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import { User } from '../auth/user.entity';
-import { UploadFileDto } from './dto/upload-file.dto';
 import { ListFilesReqDto } from './dto/list-files.req.dto';
 import { TasksService } from '../tasks/tasks.service';
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
+import { UploadFileInputInterface } from './interfaces';
 
 @Injectable()
 export class FilesService {
@@ -40,23 +42,29 @@ export class FilesService {
   }
 
   async uploadFile(
-    uploadFileDto: UploadFileDto,
+    uploadFileInputInterface: UploadFileInputInterface,
     user: User,
   ): Promise<UploadFileResponse> {
-    const { taskId } = uploadFileDto.metadata;
+    const { metadata, content } = uploadFileInputInterface;
+
+    if (!metadata) {
+      throw new BadRequestException('Метаданные файла обязательны');
+    }
+
+    const { taskId } = metadata;
 
     this.logger.log(`Upload started: userId=${user.id}, taskId=${taskId}`);
 
     await this.validateUserTask(taskId, user);
 
-    const uploadFileRequest = {
-      ...uploadFileDto,
-      metadata: { ...uploadFileDto.metadata, userId: user.id },
+    const grpcRequest: UploadFileRequest = {
+      content: content,
+      metadata: { ...metadata, userId: user.id },
     };
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.uploadFile(uploadFileRequest),
+        this.filesClientService.uploadFile(grpcRequest),
       );
 
       this.logger.log(
