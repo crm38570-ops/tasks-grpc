@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { catchError, defer, from, map } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
+import { uploadFileContentValidator } from './services/upload-file.content.validator';
 
 @Injectable()
 export class FilesService {
@@ -45,6 +46,8 @@ export class FilesService {
   async saveFile(uploadFileRequest: UploadFileRequest) {
     let fileId: string;
     const { metadata, content } = uploadFileRequest;
+
+    uploadFileContentValidator(content);
 
     const normalizedMetadata = {
       ...metadata,
