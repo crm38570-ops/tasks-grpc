@@ -1,20 +1,19 @@
-import {
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
 import fs from 'node:fs';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
+  FileMetadataRequest,
   ListFilesRequest,
   UploadFileRequest,
 } from '../proto/files/generated/files_service';
 import { join } from 'node:path';
 import { UploadFileReqValidator } from './services/upload-file.req.validator';
 import { catchError, defer, from, map } from 'rxjs';
+import { status } from '@grpc/grpc-js';
+import { FileEntity } from './file.entity';
 
 export class FilesService {
   private logger = new Logger('FilesService', { timestamp: true });
@@ -28,58 +27,42 @@ export class FilesService {
     try {
       await fs.promises.mkdir(this.FILE_DIR, { recursive: true });
     } catch (err) {
-      const message = `При создании директории произошла непредвиденная ошибка: ${err}`;
-
-      this.logger.error(message);
-      throw new InternalServerErrorException(message);
+      this.logger.error(
+        `Не удалось создать директорию ${this.FILE_DIR}: ${(err as Error).stack}`,
+      );
+      throw err;
     }
   }
 
   private fileIdValidator(fileId: string) {
     if (fileId.includes('..')) {
       const message = 'Некорректный fileId';
-      this.logger.warn(message);
-      throw new RpcException({ code: 3, message: message });
+      this.logger.warn(`${message}: ${fileId}`);
+      throw new RpcException({ code: 3, message });
     }
   }
 
   async saveFile(uploadFileRequest: UploadFileRequest) {
+    let fileId: string;
     const { metadata, content } = uploadFileRequest;
-    this.logger.log(
-      `Upload started: userId=${metadata?.userId}, taskId=${metadata?.taskId}, size=${content?.length ?? 0}`,
-    );
+
     const isValid = UploadFileReqValidator(uploadFileRequest);
 
-    if (isValid?.errors) throw isValid.errors;
-
-    if (!metadata) {
-      const message = 'Переданы некорректные данные в metadata';
-
-      this.logger.warn(message);
-
-      throw new RpcException({
-        code: 3,
-        message: message,
-      });
+    if (isValid?.errors) {
+      this.logger.error(
+        `Переданы некорректные данные: ${JSON.stringify(isValid.errors.getError())}`,
+      );
+      throw isValid.errors;
     }
 
     const normalizedMetadata = {
       ...metadata,
-      size: Number(metadata.size),
-    };
+      size: Number(metadata!.size),
+    } as FileMetadataRequest;
 
-    const { fileId } = await this.filesRepository.saveFile(normalizedMetadata);
-
-    if (!fileId) {
-      const message = 'В процессе сохранения файла произошла ошибка';
-      this.logger.error(message);
-
-      throw new RpcException({
-        code: 13,
-        message: message,
-      });
-    }
     try {
+      fileId = (await this.filesRepository.saveFile(normalizedMetadata)).fileId;
+
       await fs.promises.writeFile(
         join(this.FILE_DIR, fileId),
         Buffer.from(content),
@@ -89,93 +72,114 @@ export class FilesService {
 
       return { fileId };
     } catch (err) {
-      const message = `В процессе сохранения файла произошла ошибка`;
-
       this.logger.error(
-        `${message}: ${(err as Error).stack}`,
-        (err as Error).stack,
+        `Не удалось сохранить файл: ${(err as RpcException).stack}`,
       );
 
-      throw new RpcException({
-        code: 13,
-        message: `В процессе сохранения файла произошла ошибка`,
-      });
+      throw err;
     }
   }
 
   async getListFiles(listFilesRequest: ListFilesRequest) {
     const { taskId } = listFilesRequest;
-    this.logger.log(`List started: taskId=${taskId}`);
 
     try {
       const files = await this.filesRepository.getListFiles(listFilesRequest);
 
-      this.logger.log(`Файлы для taskId ${taskId}: ${files.length} шт.`);
+      if (!files.length) {
+        const message = 'Для данной задачи нет подходящих файлов';
 
-      if (!files.length) throw new NotFoundException();
+        this.logger.error(`${message}: taskId=${taskId}`);
+
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message,
+        });
+      }
 
       return { files };
     } catch (err) {
-      if (err instanceof NotFoundException)
-        throw new RpcException({
-          code: 5,
-          message: `Для данной задачи нет подходящих файлов`,
-        });
-
       this.logger.error(
-        `Ошибка чтения файла: taskId=${taskId}`,
-        (err as Error).stack,
+        `Не удалось получить список файлов для taskId: ${taskId}. StackTrace: ${(err as RpcException).stack}`,
       );
-      throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
+
+      throw err;
     }
   }
 
   async deleteFile(deleteFileRequest: DeleteFileRequest) {
     const { fileId } = deleteFileRequest;
-    this.logger.log(`Delete started: fileId=${fileId}`);
 
     this.fileIdValidator(fileId);
 
     try {
-      await this.filesRepository.deleteFile(deleteFileRequest);
+      const result = await this.filesRepository.deleteFile(deleteFileRequest);
+
+      if (!result.affected) {
+        const message = `Файл с ID: ${fileId} не найден`;
+
+        this.logger.warn(message);
+
+        throw new RpcException({ code: status.NOT_FOUND, message });
+      }
+
       await fs.promises.unlink(join(this.FILE_DIR, fileId));
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
       this.logger.error(
-        `В процессе удаления файла произошла ошибка: ${(err as Error).stack}`,
+        `Не удалось удалить файл с fileId: ${fileId}. StackTrace: ${(err as RpcException).stack}`,
       );
 
-      if (err instanceof RpcException) {
-        throw err;
-      }
-
-      throw new RpcException({
-        code: 13,
-        message: 'Ошибка удаления файла',
-      });
+      throw err;
     }
   }
 
   async downloadFile(downloadFileRequest: DownloadFileRequest) {
-    this.logger.log(
-      `Download started: userId=${downloadFileRequest.userId}, fileId=${downloadFileRequest.fileId}`,
-    );
-    await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
+    const { userId, fileId } = downloadFileRequest;
+
+    this.fileIdValidator(fileId);
+
+    this.logger.log(`Download started: userId=${userId}, fileId=${fileId}`);
+
+    let file: FileEntity | null;
+    try {
+      file =
+        await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
+    } catch (err) {
+      this.logger.error(
+        `Ошибка при проверке доступа к файлу: ${(err as Error).stack}`,
+      );
+      throw err;
+    }
+
+    if (!file) {
+      this.logger.error(`Ошибка при проверке доступа к файлу`);
+
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: 'Файл не найден',
+      });
+    }
 
     return defer(() => {
-      const { fileId } = downloadFileRequest;
-
-      this.fileIdValidator(fileId);
       this.logger.log(`Download stream opened: fileId=${fileId}`);
 
       return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
         map((chunk: Buffer) => ({ chunk })),
         catchError((err) => {
+          this.logger.error(
+            `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
+          );
+
           if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-            throw new RpcException({ code: 5, message: 'Файл не найден' });
+            throw new RpcException({
+              code: status.NOT_FOUND,
+              message: 'Файл не найден',
+            });
           }
-          throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
+
+          throw err;
         }),
       );
     });
