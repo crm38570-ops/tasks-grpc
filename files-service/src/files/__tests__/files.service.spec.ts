@@ -7,7 +7,7 @@ import {
   afterAll,
   expect,
 } from '@jest/globals';
-import { FilesService } from '../files.controller';
+import { FilesService } from '../files.service';
 import { FilesRepository } from '../files.repository';
 import {
   DeleteFileRequest,
