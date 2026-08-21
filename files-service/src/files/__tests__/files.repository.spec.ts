@@ -4,7 +4,6 @@ import { DataSource, DeleteResult, SelectQueryBuilder } from 'typeorm';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { FileEntity } from '../file.entity';
 import { FileMetadataRequest } from '../../proto/files/generated/files_service';
-import { NotFoundException } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 
 describe(`FilesRepository`, () => {
@@ -43,18 +42,14 @@ describe(`FilesRepository`, () => {
     await expect(repository.saveFile(fileMetadataRequest)).rejects.toBe(error);
   });
 
-  it('saveFile преобразует неизвестную ошибку в RpcException с кодом 13', async () => {
+  it('saveFile пробрасывает неизвестную ошибку как есть', async () => {
     const error = new Error('Ошибка базы данных');
     jest
       .spyOn(repository, 'create')
       .mockReturnValue(fileMetadataRequest as FileEntity);
     jest.spyOn(repository, 'save').mockRejectedValue(error);
 
-    await expect(
-      repository.saveFile(fileMetadataRequest),
-    ).rejects.toMatchObject({
-      error: { code: 13 },
-    });
+    await expect(repository.saveFile(fileMetadataRequest)).rejects.toBe(error);
   });
 
   it(`getListFiles фильтрует файлы по taskId и userId`, async () => {
@@ -86,30 +81,23 @@ describe(`FilesRepository`, () => {
       affected: 1,
     } as DeleteResult);
 
-    await expect(
-      repository.deleteFile(mockFileUserId),
-    ).resolves.toBeUndefined();
+    await expect(repository.deleteFile(mockFileUserId)).resolves.toEqual({
+      affected: 1,
+    });
 
     expect(deleteSpy).toHaveBeenCalledWith(mockFileUserId);
   });
 
-  it('deleteFile возвращает ошибку 5, если файл не найден', async () => {
-    jest.spyOn(repository, 'delete').mockResolvedValue({
+  it('deleteFile возвращает affected: 0, если файл не найден', async () => {
+    const deleteSpy = jest.spyOn(repository, 'delete').mockResolvedValue({
       affected: 0,
     } as DeleteResult);
 
-    let caughtError: unknown;
-
-    try {
-      await repository.deleteFile(mockFileUserId);
-    } catch (err: unknown) {
-      caughtError = err;
-    }
-
-    expect(caughtError).toBeInstanceOf(RpcException);
-    expect((caughtError as RpcException).getError()).toMatchObject({
-      code: 5,
+    await expect(repository.deleteFile(mockFileUserId)).resolves.toEqual({
+      affected: 0,
     });
+
+    expect(deleteSpy).toHaveBeenCalledWith(mockFileUserId);
   });
 
   it('downloadFileVerifyUser завершается успешно для владельца файла', async () => {
@@ -124,13 +112,13 @@ describe(`FilesRepository`, () => {
 
     await expect(
       repository.downloadFileVerifyUser(mockFileUserId),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ fileId: mockFileUserId.fileId });
 
     expect(where).toHaveBeenCalledWith(mockFileUserId);
     expect(getOne).toHaveBeenCalled();
   });
 
-  it('downloadFileVerifyUser возвращает NotFoundException, если файл не найден', async () => {
+  it('downloadFileVerifyUser возвращает null, если файл не найден', async () => {
     const getOne = jest.fn().mockResolvedValue(null as never);
     const where = jest.fn().mockReturnValue({ getOne });
 
@@ -140,7 +128,7 @@ describe(`FilesRepository`, () => {
 
     await expect(
       repository.downloadFileVerifyUser(mockFileUserId),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).resolves.toBeNull();
 
     expect(where).toHaveBeenCalledWith(mockFileUserId);
   });
