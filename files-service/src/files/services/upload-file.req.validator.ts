@@ -19,6 +19,14 @@ export function UploadFileReqValidator(
     return isErrors;
   }
 
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!value)
+      throw new RpcException({
+        code: 3,
+        message: `${key} не может быть ${value}`,
+      });
+  }
+
   if (!content.length) {
     isErrors.errors = new RpcException({
       code: 3,
