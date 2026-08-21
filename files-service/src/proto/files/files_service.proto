@@ -54,7 +54,7 @@ message DownloadFileResponse {
 }
 
 service FilesService {
-  rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
+  rpc UploadFile (stream UploadFileRequest) returns (UploadFileResponse);
   rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
   rpc DeleteFile (DeleteFileRequest) returns (DeleteFileResponse);
   rpc DownloadFile (DownloadFileRequest) returns (stream DownloadFileResponse);

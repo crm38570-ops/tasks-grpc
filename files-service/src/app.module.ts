@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.schema';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FilesModule } from './files/files.module';
+import { GrpcExceptionFilter } from './common/filters/grpc-exception.filter';
+import { APP_FILTER } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -26,6 +28,12 @@ import { FilesModule } from './files/files.module';
       }),
     }),
     FilesModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GrpcExceptionFilter,
+    },
   ],
 })
 export class AppModule {}

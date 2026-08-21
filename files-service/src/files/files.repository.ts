@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { FileEntity } from './file.entity';
 import {
@@ -8,7 +8,7 @@ import {
   FileMetadataResponse,
   ListFilesRequest,
 } from '../proto/files/generated/files_service';
-import { RpcException } from '@nestjs/microservices';
+import { DeleteResult } from 'typeorm/browser';
 
 @Injectable()
 export class FilesRepository extends Repository<FileEntity> {
@@ -19,15 +19,7 @@ export class FilesRepository extends Repository<FileEntity> {
   async saveFile(
     fileMetadataRequest: FileMetadataRequest,
   ): Promise<FileEntity> {
-    try {
-      return await this.save(this.create(fileMetadataRequest));
-    } catch (err) {
-      if (err instanceof RpcException) {
-        throw err;
-      } else {
-        throw new RpcException({ code: 13, message: 'Внутренняя ошибка' });
-      }
-    }
+    return await this.save(this.create(fileMetadataRequest));
   }
 
   async getListFiles(
@@ -35,43 +27,20 @@ export class FilesRepository extends Repository<FileEntity> {
   ): Promise<FileMetadataResponse[]> {
     const query = this.createQueryBuilder('file');
 
-    try {
-      const result = await query.where({ ...listFilesRequest }).getMany();
-      return result;
-    } catch (err) {
-      throw new RpcException({
-        code: 5,
-        message: (err as Error).stack,
-      });
-    }
+    return await query.where({ ...listFilesRequest }).getMany();
   }
 
-  async deleteFile(deleteFileRequest: DeleteFileRequest): Promise<void> {
-    try {
-      const result = await this.delete({ ...deleteFileRequest });
-
-      if (!result.affected)
-        throw new NotFoundException(
-          `Файл с ID: ${deleteFileRequest.fileId} не найден`,
-        );
-    } catch (err) {
-      throw new RpcException({
-        code: err instanceof NotFoundException ? 5 : 13,
-        message: (err as Error).stack,
-      });
-    }
+  async deleteFile(
+    deleteFileRequest: DeleteFileRequest,
+  ): Promise<DeleteResult> {
+    return this.delete({ ...deleteFileRequest });
   }
 
   async downloadFileVerifyUser(
     downloadFileRequest: DownloadFileRequest,
-  ): Promise<void> {
-    const found = await this.createQueryBuilder('file')
+  ): Promise<FileEntity | null> {
+    return this.createQueryBuilder('file')
       .where({ ...downloadFileRequest })
       .getOne();
-
-    if (!found)
-      throw new NotFoundException(
-        `Файл с ID: ${downloadFileRequest.fileId} не найден`,
-      );
   }
 }
