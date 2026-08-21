@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
 import fs from 'node:fs';
@@ -10,11 +10,11 @@ import {
   UploadFileRequest,
 } from '../proto/files/generated/files_service';
 import { join } from 'node:path';
-import { UploadFileReqValidator } from './services/upload-file.req.validator';
 import { catchError, defer, from, map } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 
+@Injectable()
 export class FilesService {
   private logger = new Logger('FilesService', { timestamp: true });
   private FILE_DIR: string;
@@ -46,18 +46,9 @@ export class FilesService {
     let fileId: string;
     const { metadata, content } = uploadFileRequest;
 
-    const isValid = UploadFileReqValidator(uploadFileRequest);
-
-    if (isValid?.errors) {
-      this.logger.error(
-        `Переданы некорректные данные: ${JSON.stringify(isValid.errors.getError())}`,
-      );
-      throw isValid.errors;
-    }
-
     const normalizedMetadata = {
       ...metadata,
-      size: Number(metadata!.size),
+      size: metadata!.size,
     } as FileMetadataRequest;
 
     try {

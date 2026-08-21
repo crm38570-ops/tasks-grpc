@@ -3,10 +3,11 @@ import { FilesController } from './files.controller';
 import { FilesRepository } from './files.repository';
 import { Module } from '@nestjs/common';
 import { FileEntity } from './file.entity';
+import { FilesService } from './files.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FileEntity])],
-  providers: [FilesRepository],
+  providers: [FilesRepository, FilesService],
   controllers: [FilesController],
 })
 export class FilesModule {}
