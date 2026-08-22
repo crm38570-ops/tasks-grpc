@@ -7,3 +7,6 @@ test/downloaded-*.jpg
 *.jpg
 *.jpeg
 *.png
+
+# локальный блокнот, не коммитится
+TASKS.md
