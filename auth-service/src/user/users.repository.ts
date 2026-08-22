@@ -5,9 +5,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { QueryFailedError, Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User } from '../user/user.entity';
 import { DataSource } from 'typeorm';
-import { AuthCredentialsDto } from './dto';
+import { AuthCredentialsDto } from '../auth/dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

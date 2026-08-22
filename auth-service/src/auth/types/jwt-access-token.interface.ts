@@ -1,1 +1,3 @@
-export interface JwtAccessToken {}
+export interface JwtAccessToken {
+  accessToken: string;
+}
