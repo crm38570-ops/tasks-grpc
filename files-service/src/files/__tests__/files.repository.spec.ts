@@ -52,6 +52,38 @@ describe(`FilesRepository`, () => {
     await expect(repository.saveFile(fileMetadataRequest)).rejects.toBe(error);
   });
 
+  it('getFile возвращает файл по fileId', async () => {
+    const getOne = jest
+      .fn()
+      .mockResolvedValue({ fileId: mockFileUserId.fileId } as never);
+    const where = jest.fn().mockReturnValue({ getOne });
+
+    jest.spyOn(repository, 'createQueryBuilder').mockReturnValue({
+      where,
+    } as any as SelectQueryBuilder<FileEntity>);
+
+    await expect(repository.getFile(mockFileUserId.fileId)).resolves.toEqual({
+      fileId: mockFileUserId.fileId,
+    });
+
+    expect(where).toHaveBeenCalledWith({ fileId: mockFileUserId.fileId });
+    expect(getOne).toHaveBeenCalled();
+  });
+
+  it('getFile возвращает null, если файл не найден', async () => {
+    const getOne = jest.fn().mockResolvedValue(null as never);
+    const where = jest.fn().mockReturnValue({ getOne });
+
+    jest.spyOn(repository, 'createQueryBuilder').mockReturnValue({
+      where,
+    } as any as SelectQueryBuilder<FileEntity>);
+
+    await expect(repository.getFile(mockFileUserId.fileId)).resolves.toBeNull();
+
+    expect(where).toHaveBeenCalledWith({ fileId: mockFileUserId.fileId });
+    expect(getOne).toHaveBeenCalled();
+  });
+
   it(`getListFiles фильтрует файлы по taskId и userId`, async () => {
     const files = [
       {

@@ -44,17 +44,15 @@ describe(`UploadFileRequestDto`, () => {
     );
   });
 
-  it(`Возвращает ошибку длины для пустого fileName`, async () => {
+  it(`Возвращает ошибку строки для некорректного fileName`, async () => {
     const errors = await validate(
       plainToInstance(UploadFileRequestDto, {
         ...validPayload,
-        metadata: { ...validPayload.metadata, fileName: '' },
+        metadata: { ...validPayload.metadata, fileName: 123 },
       }),
     );
 
-    expect(collect(errors)).toContain(
-      'fileName must be longer than or equal to 1 characters',
-    );
+    expect(collect(errors)).toContain('fileName must be a string');
   });
 
   it(`Возвращает ошибку MIME-типа для некорректного mimeType`, async () => {
