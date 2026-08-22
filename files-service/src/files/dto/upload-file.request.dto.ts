@@ -5,14 +5,12 @@ import {
   IsNumber,
   IsString,
   IsUUID,
-  Length,
   Min,
   ValidateNested,
 } from 'class-validator';
 
 export class FileMetadata {
   @IsString()
-  @Length(1, 255)
   fileName: string;
 
   @IsString()

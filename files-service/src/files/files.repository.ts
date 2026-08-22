@@ -22,6 +22,10 @@ export class FilesRepository extends Repository<FileEntity> {
     return await this.save(this.create(fileMetadataRequest));
   }
 
+  getFile(fileId: string): Promise<FileEntity | null> {
+    return this.createQueryBuilder('file').where({ fileId }).getOne();
+  }
+
   async getListFiles(
     listFilesRequest: ListFilesRequest,
   ): Promise<FileMetadataResponse[]> {

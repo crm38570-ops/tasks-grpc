@@ -14,6 +14,12 @@ import { catchError, defer, from, map } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { uploadFileContentValidator } from './services/upload-file.content.validator';
+import { randomUUID } from 'node:crypto';
+
+export interface IFileUserValidator {
+  fileId: string;
+  userId: string;
+}
 
 @Injectable()
 export class FilesService {
@@ -43,6 +49,24 @@ export class FilesService {
     }
   }
 
+  private async fileUserValidator(iFileUserValidator: IFileUserValidator) {
+    const { fileId, userId } = iFileUserValidator;
+
+    const file = await this.filesRepository.getFile(fileId);
+
+    if (!file)
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: 'Файл не найден',
+      });
+
+    if (file.userId !== userId)
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: 'Файл не найден',
+      });
+  }
+
   async saveFile(uploadFileRequest: UploadFileRequest) {
     let fileId: string;
     const { metadata, content } = uploadFileRequest;
@@ -51,6 +75,7 @@ export class FilesService {
 
     const normalizedMetadata = {
       ...metadata,
+      fileName: randomUUID(),
       size: metadata!.size,
     } as FileMetadataRequest;
 
@@ -104,9 +129,10 @@ export class FilesService {
   async deleteFile(deleteFileRequest: DeleteFileRequest) {
     const { fileId } = deleteFileRequest;
 
-    this.fileIdValidator(fileId);
-
     try {
+      this.fileIdValidator(fileId);
+      await this.fileUserValidator(deleteFileRequest);
+
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 
       if (!result.affected) {
@@ -132,12 +158,11 @@ export class FilesService {
   async downloadFile(downloadFileRequest: DownloadFileRequest) {
     const { userId, fileId } = downloadFileRequest;
 
-    this.fileIdValidator(fileId);
-
     this.logger.log(`Download started: userId=${userId}, fileId=${fileId}`);
 
     let file: FileEntity | null;
     try {
+      this.fileIdValidator(fileId);
       file =
         await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
     } catch (err) {
