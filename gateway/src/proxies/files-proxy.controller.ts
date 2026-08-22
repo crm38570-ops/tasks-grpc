@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { map } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 const TASKS_SERVICE_URL =
   process.env.TASKS_SERVICE_URL ?? 'http://localhost:3000';
@@ -20,7 +21,7 @@ export class FilesProxyController {
   getListFiles() {
     return this.http
       .get(`${TASKS_SERVICE_URL}/files`)
-      .pipe(map((response) => response.data));
+      .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get(':fileId')
@@ -28,13 +29,13 @@ export class FilesProxyController {
     // TODO: стрим ответа вниз по течению (responseType: 'stream')
     return this.http
       .get(`${TASKS_SERVICE_URL}/files/${fileId}`)
-      .pipe(map((response) => response.data));
+      .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Delete(':fileId')
   deleteFile(@Param('fileId') fileId: string) {
     return this.http
       .delete(`${TASKS_SERVICE_URL}/files/${fileId}`)
-      .pipe(map((response) => response.data));
+      .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 }
