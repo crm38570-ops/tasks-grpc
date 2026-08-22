@@ -9,3 +9,11 @@
 - [ ] tasks-service: перевести tasks.repository/service с User на userId
 - [ ] tasks-service: files-модуль — заменить GetUser/User на userId
 - [ ] tasks-service: определиться с проверкой JWT после выноса (общий JWT_SECRET или verify в auth-service)
+
+Gateway (ветка gateway/init, заготовка прокси):
+
+- [ ] gateway: config.schema.ts + env для адресов сервисов
+      (сейчас process.env ?? localhost захардкожены в контроллерах)
+- [ ] gateway: определиться с проверкой токенов
+      (прозрачный форвард Authorization или Guard с verify в auth-service)
+- [ ] gateway: /files/upload — multipart, download — стриминг (сейчас TODO)
