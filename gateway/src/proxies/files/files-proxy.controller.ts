@@ -1,16 +1,21 @@
 import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
-
-const TASKS_SERVICE_URL =
-  process.env.TASKS_SERVICE_URL ?? 'http://localhost:3000';
 
 // files-service — gRPC, наружу его не отдаём:
 // проксируем HTTP-эндпоинты tasks-service, который уже оборачивает gRPC
 @Controller('files')
 export class FilesProxyController {
-  constructor(private readonly http: HttpService) {}
+  private readonly tasksServiceUrl: string;
+
+  constructor(
+    private readonly http: HttpService,
+    config: ConfigService,
+  ) {
+    this.tasksServiceUrl = config.getOrThrow('TASKS_SERVICE_URL');
+  }
 
   @Post('upload')
   uploadFile() {
@@ -20,7 +25,7 @@ export class FilesProxyController {
   @Get()
   getListFiles() {
     return this.http
-      .get(`${TASKS_SERVICE_URL}/files`)
+      .get(`${this.tasksServiceUrl}/files`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
@@ -28,14 +33,14 @@ export class FilesProxyController {
   downloadFile(@Param('fileId') fileId: string) {
     // TODO: стрим ответа вниз по течению (responseType: 'stream')
     return this.http
-      .get(`${TASKS_SERVICE_URL}/files/${fileId}`)
+      .get(`${this.tasksServiceUrl}/files/${fileId}`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Delete(':fileId')
   deleteFile(@Param('fileId') fileId: string) {
     return this.http
-      .delete(`${TASKS_SERVICE_URL}/files/${fileId}`)
+      .delete(`${this.tasksServiceUrl}/files/${fileId}`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 }

@@ -8,48 +8,53 @@ import {
   Post,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
 
-const TASKS_SERVICE_URL =
-  process.env.TASKS_SERVICE_URL ?? 'http://localhost:3000';
-
 @Controller('tasks')
 export class TasksProxyController {
-  constructor(private readonly http: HttpService) {}
+  private readonly tasksServiceUrl: string;
+
+  constructor(
+    private readonly http: HttpService,
+    config: ConfigService,
+  ) {
+    this.tasksServiceUrl = config.getOrThrow('TASKS_SERVICE_URL');
+  }
 
   @Post()
   createTask(@Body() body: unknown) {
     return this.http
-      .post(`${TASKS_SERVICE_URL}/tasks`, body)
+      .post(`${this.tasksServiceUrl}/tasks`, body)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get()
   getTasks() {
     return this.http
-      .get(`${TASKS_SERVICE_URL}/tasks`)
+      .get(`${this.tasksServiceUrl}/tasks`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get(':id')
   getTask(@Param('id') id: string) {
     return this.http
-      .get(`${TASKS_SERVICE_URL}/tasks/${id}`)
+      .get(`${this.tasksServiceUrl}/tasks/${id}`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Delete(':id')
   deleteTask(@Param('id') id: string) {
     return this.http
-      .delete(`${TASKS_SERVICE_URL}/tasks/${id}`)
+      .delete(`${this.tasksServiceUrl}/tasks/${id}`)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Patch(':id/status')
   updateTaskStatus(@Param('id') id: string, @Body() body: unknown) {
     return this.http
-      .patch(`${TASKS_SERVICE_URL}/tasks/${id}/status`, body)
+      .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body)
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 }
