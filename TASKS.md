@@ -2,11 +2,10 @@
 
 Заметки по доделкам(для каждой своя ветка согласно конвенции в AGENTS.md).
 
-- [x] files-service: создать getFile для сервиса, чтобы в deleteFile можно было сделать проверку, что файл действительно принадлежит пользователю
-- [x] files-service: убрать хардкод protoPath, сделать как в tasks-service
-- [x] files-service: поменять fileName на UUID
+Вынести auth из tasks-service:
 
-Мелкие правки:
-
-- [x] files-service: кастомный валидатор для пустого `content` в uploadFile
-- [x] files-service: отрефакторить сервисы
+- [ ] auth-service: вынести auth из tasks-service (src/auth/*, JWT-конфиг, auth-зависимости)
+- [ ] tasks-service: заменить relation User в task.entity на userId (uuid)
+- [ ] tasks-service: перевести tasks.repository/service с User на userId
+- [ ] tasks-service: files-модуль — заменить GetUser/User на userId
+- [ ] tasks-service: определиться с проверкой JWT после выноса (общий JWT_SECRET или verify в auth-service)
