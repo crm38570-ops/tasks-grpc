@@ -28,7 +28,7 @@ export class AuthController {
     description: 'Username уже занят',
   })
   @Post('signup')
-  async signUp(
+  signUp(
     @Body() authCredentialsDto: AuthCredentialsDto,
   ): Promise<UserResponseDto> {
     this.logger.verbose(`User "${authCredentialsDto.username}" signing up`);
