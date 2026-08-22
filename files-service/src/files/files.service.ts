@@ -13,13 +13,10 @@ import { join } from 'node:path';
 import { catchError, defer, from, map } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
-import { uploadFileContentValidator } from './services/upload-file.content.validator';
+import { validateUploadFileContent } from './services/validate.upload-file.content';
 import { randomUUID } from 'node:crypto';
-
-export interface IFileUserValidator {
-  fileId: string;
-  userId: string;
-}
+import { validateFileId } from './services/validate.file-id';
+import { validateFileUser } from './services/validate.file-user';
 
 @Injectable()
 export class FilesService {
@@ -41,37 +38,11 @@ export class FilesService {
     }
   }
 
-  private fileIdValidator(fileId: string) {
-    if (fileId.includes('..')) {
-      const message = 'Некорректный fileId';
-      this.logger.warn(`${message}: ${fileId}`);
-      throw new RpcException({ code: 3, message });
-    }
-  }
-
-  private async fileUserValidator(iFileUserValidator: IFileUserValidator) {
-    const { fileId, userId } = iFileUserValidator;
-
-    const file = await this.filesRepository.getFile(fileId);
-
-    if (!file)
-      throw new RpcException({
-        code: status.NOT_FOUND,
-        message: 'Файл не найден',
-      });
-
-    if (file.userId !== userId)
-      throw new RpcException({
-        code: status.NOT_FOUND,
-        message: 'Файл не найден',
-      });
-  }
-
   async saveFile(uploadFileRequest: UploadFileRequest) {
     let fileId: string;
     const { metadata, content } = uploadFileRequest;
 
-    uploadFileContentValidator(content);
+    validateUploadFileContent(content);
 
     const normalizedMetadata = {
       ...metadata,
@@ -127,11 +98,14 @@ export class FilesService {
   }
 
   async deleteFile(deleteFileRequest: DeleteFileRequest) {
-    const { fileId } = deleteFileRequest;
+    const { fileId, userId } = deleteFileRequest;
 
     try {
-      this.fileIdValidator(fileId);
-      await this.fileUserValidator(deleteFileRequest);
+      validateFileId(fileId, this.logger);
+
+      const file = await this.filesRepository.getFile(fileId);
+
+      validateFileUser({ file, userId });
 
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 
@@ -162,7 +136,7 @@ export class FilesService {
 
     let file: FileEntity | null;
     try {
-      this.fileIdValidator(fileId);
+      validateFileId(fileId, this.logger);
       file =
         await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
     } catch (err) {

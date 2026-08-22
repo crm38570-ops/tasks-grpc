@@ -1,7 +1,7 @@
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 
-export const uploadFileContentValidator = (
+export const validateUploadFileContent = (
   uploadFileContent: Uint8Array<ArrayBufferLike>,
 ) => {
   if (!uploadFileContent.length)
