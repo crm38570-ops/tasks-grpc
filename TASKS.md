@@ -9,4 +9,4 @@
 Мелкие правки:
 
 - [x] files-service: кастомный валидатор для пустого `content` в uploadFile
-- [ ] files-service: отрефакторить сервисы
+- [x] files-service: отрефакторить сервисы
