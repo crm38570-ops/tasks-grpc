@@ -17,3 +17,5 @@ Gateway (ветка gateway/init, заготовка прокси):
 - [ ] gateway: определиться с проверкой токенов
       (прозрачный форвард Authorization или Guard с verify в auth-service)
 - [ ] gateway: /files/upload — multipart, download — стриминг (сейчас TODO)
+- [ ] определить, кто проксирует файлы: tasks-service (текущее, HTTP-обёртка gRPC)
+      или gateway напрямую в files-service (gRPC-клиент в gateway)
