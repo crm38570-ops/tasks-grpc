@@ -7,16 +7,25 @@ import {
   DownloadFileRequest,
   FileMetadataRequest,
   ListFilesRequest,
-  UploadFileRequest,
 } from '../proto/files/generated/files_service';
 import { join } from 'node:path';
-import { catchError, defer, from, map } from 'rxjs';
+import {
+  catchError,
+  defer,
+  from,
+  lastValueFrom,
+  map,
+  Observable,
+  toArray,
+} from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
 import { randomUUID } from 'node:crypto';
 import { validateFileId } from './services/validate.file-id';
 import { validateFileUser } from './services/validate.file-user';
+import { UploadFileRequestDto } from './dto/upload-file.request.dto';
+import { validateUploadFileRequest } from './services/validate.upload-file.request';
 
 @Injectable()
 export class FilesService {
@@ -38,16 +47,32 @@ export class FilesService {
     }
   }
 
-  async saveFile(uploadFileRequest: UploadFileRequest) {
+  async saveFile(uploadFileRequest$: Observable<UploadFileRequestDto>) {
     let fileId: string;
-    const { metadata, content } = uploadFileRequest;
+
+    const chunks = await lastValueFrom(uploadFileRequest$.pipe(toArray()));
+
+    if (!chunks.length) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Пустой поток',
+      });
+    }
+
+    const [first] = chunks;
+
+    validateUploadFileRequest(first);
+
+    const content = Buffer.concat(chunks.map((chunk) => chunk.content));
 
     validateUploadFileContent(content);
+
+    const { metadata } = first;
 
     const normalizedMetadata = {
       ...metadata,
       fileName: randomUUID(),
-      size: metadata!.size,
+      size: metadata.size,
     } as FileMetadataRequest;
 
     try {
