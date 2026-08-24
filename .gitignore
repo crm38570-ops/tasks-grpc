@@ -7,3 +7,5 @@ test/downloaded-*.jpg
 *.jpg
 *.jpeg
 *.png
+
+TASKS.md
