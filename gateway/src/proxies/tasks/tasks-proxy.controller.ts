@@ -6,11 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import type { Request } from 'express';
 
 @Controller('tasks')
 export class TasksProxyController {
@@ -24,37 +26,61 @@ export class TasksProxyController {
   }
 
   @Post()
-  createTask(@Body() body: unknown) {
+  createTask(@Body() body: unknown, @Req() request: Request) {
     return this.http
-      .post(`${this.tasksServiceUrl}/tasks`, body)
+      .post(`${this.tasksServiceUrl}/tasks`, body, {
+        headers: {
+          Authorization: request.headers.authorization,
+        },
+      })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get()
-  getTasks() {
+  getTasks(@Req() request: Request) {
     return this.http
-      .get(`${this.tasksServiceUrl}/tasks`)
+      .get(`${this.tasksServiceUrl}/tasks`, {
+        headers: {
+          Authorization: request.headers.authorization,
+        },
+      })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get(':id')
-  getTask(@Param('id') id: string) {
+  getTask(@Param('id') id: string, @Req() request: Request) {
     return this.http
-      .get(`${this.tasksServiceUrl}/tasks/${id}`)
+      .get(`${this.tasksServiceUrl}/tasks/${id}`, {
+        headers: {
+          Authorization: request.headers.authorization,
+        },
+      })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Delete(':id')
-  deleteTask(@Param('id') id: string) {
+  deleteTask(@Param('id') id: string, @Req() request: Request) {
     return this.http
-      .delete(`${this.tasksServiceUrl}/tasks/${id}`)
+      .delete(`${this.tasksServiceUrl}/tasks/${id}`, {
+        headers: {
+          Authorization: request.headers.authorization,
+        },
+      })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Patch(':id/status')
-  updateTaskStatus(@Param('id') id: string, @Body() body: unknown) {
+  updateTaskStatus(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: Request,
+  ) {
     return this.http
-      .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body)
+      .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body, {
+        headers: {
+          Authorization: request.headers.authorization,
+        },
+      })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 }
