@@ -1,14 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const logger = new Logger();
+  const PORT = Number(process.env.PORT ?? 3000);
 
   const app = await NestFactory.create(AppModule);
 
-  await app.listen(3000);
-  logger.log(`App listening on port 3000`);
+  app.enableCors({ origin: true });
+
+  await app.listen(PORT);
+  logger.log(`App started on PORT: ${PORT}`);
 }
 
 bootstrap().catch((error) => {

@@ -1,4 +1,4 @@
-import { catchError, firstValueFrom, map, throwError } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, throwError } from 'rxjs';
 import {
   DeleteFileResponse,
   ListFilesResponse,
@@ -15,12 +15,12 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { Readable } from 'node:stream';
-import { User } from '../auth/user.entity';
 import { ListFilesReqDto } from './dto/list-files.req.dto';
 import { TasksService } from '../tasks/tasks.service';
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { UploadFileInputInterface } from './interfaces';
+import { handleFileError } from './services/handle.file.error';
 
 @Injectable()
 export class FilesService {
@@ -31,21 +31,11 @@ export class FilesService {
     private readonly tasksService: TasksService,
   ) {}
 
-  private handleFileError(error: unknown): never {
-    const grpcError = error as { code?: number };
-
-    if (grpcError.code === 5) {
-      throw new NotFoundException('Файл не найден');
-    }
-
-    throw error;
-  }
-
   async uploadFile(
-    uploadFileInputInterface: UploadFileInputInterface,
-    user: User,
+    uploadFileInput: UploadFileInputInterface,
+    userId: string,
   ): Promise<UploadFileResponse> {
-    const { metadata, content } = uploadFileInputInterface;
+    const { metadata, content } = uploadFileInput;
 
     if (!metadata) {
       throw new BadRequestException('Метаданные файла обязательны');
@@ -53,27 +43,35 @@ export class FilesService {
 
     const { taskId } = metadata;
 
-    this.logger.log(`Upload started: userId=${user.id}, taskId=${taskId}`);
+    this.logger.log(`Upload started: userId=${userId}, taskId=${taskId}`);
 
-    await this.validateUserTask(taskId, user);
+    await this.validateUserTask(taskId, userId);
 
-    const grpcRequest: UploadFileRequest = {
-      content: content,
-      metadata: { ...metadata, userId: user.id },
-    };
+    const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
+      subscriber.next({
+        content: new Uint8Array(0),
+        metadata: { ...metadata, userId },
+      });
+
+      content.on('data', (chunk: Buffer) =>
+        subscriber.next({ content: chunk, metadata: undefined }),
+      );
+      content.on('end', () => subscriber.complete());
+      content.on('error', (error: Error) => subscriber.error(error));
+    });
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.uploadFile(grpcRequest),
+        this.filesClientService.uploadFile(grpcRequest$),
       );
 
       this.logger.log(
-        `Upload completed: userId=${user.id}, taskId=${taskId}, fileId=${response.fileId}`,
+        `Upload completed: userId=${userId}, taskId=${taskId}, fileId=${response.fileId}`,
       );
       return response;
     } catch (error) {
       this.logger.error(
-        `Upload failed: userId=${user.id}, taskId=${taskId}`,
+        `Upload failed: userId=${userId}, taskId=${taskId}`,
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
@@ -82,41 +80,41 @@ export class FilesService {
 
   async listFiles(
     { taskId }: ListFilesReqDto,
-    user: User,
+    userId: string,
   ): Promise<ListFilesResponse> {
-    this.logger.log(`List started: userId=${user.id}, taskId=${taskId}`);
+    this.logger.log(`List started: userId=${userId}, taskId=${taskId}`);
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.listFiles({ taskId, userId: user.id }),
+        this.filesClientService.listFiles({ taskId, userId }),
       );
 
       this.logger.log(
-        `List completed: userId=${user.id}, taskId=${taskId}, count=${response.files.length}`,
+        `List completed: userId=${userId}, taskId=${taskId}, count=${response.files.length}`,
       );
       return response;
     } catch (err) {
       this.logger.error(
-        `List failed: userId=${user.id}, taskId=${taskId}`,
+        `List failed: userId=${userId}, taskId=${taskId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
   async downloadFile(
     downloadFileDto: DownloadFileReqDto,
-    user: User,
+    userId: string,
   ): Promise<StreamableFile> {
     const { fileId, taskId } = downloadFileDto;
 
     this.logger.log(
-      `Download started: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+      `Download started: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
     );
 
-    await this.validateUserTask(taskId, user);
+    await this.validateUserTask(taskId, userId);
 
-    const filesResponse = await this.listFiles({ taskId }, user);
+    const filesResponse = await this.listFiles({ taskId }, userId);
 
     const hasAccess = filesResponse.files.some(
       (file) => file.fileId === fileId,
@@ -128,11 +126,11 @@ export class FilesService {
 
     const fileReadableStream = Readable.from(
       eachValueFrom(
-        this.filesClientService.downloadFile({ fileId, userId: user.id }).pipe(
+        this.filesClientService.downloadFile({ fileId, userId }).pipe(
           map(({ chunk }) => chunk),
           catchError((error: unknown) => {
             this.logger.error(
-              `Download failed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+              `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
               error instanceof Error ? error.stack : String(error),
             );
             const grpcError = error as { code?: number };
@@ -152,40 +150,40 @@ export class FilesService {
 
   async deleteFile(
     deleteFileDto: DeleteFileReqDto,
-    user: User,
+    userId: string,
   ): Promise<DeleteFileResponse> {
     const { taskId, fileId } = deleteFileDto;
 
     this.logger.log(
-      `Delete started: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+      `Delete started: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
     );
 
-    await this.validateUserTask(taskId, user);
+    await this.validateUserTask(taskId, userId);
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.deleteFile({ fileId, userId: user.id }),
+        this.filesClientService.deleteFile({ fileId, userId }),
       );
 
       this.logger.log(
-        `Delete completed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+        `Delete completed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
       );
       return response;
     } catch (err) {
       this.logger.error(
-        `Delete failed: userId=${user.id}, taskId=${taskId}, fileId=${fileId}`,
+        `Delete failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
-  async validateUserTask(taskId: string, user: User) {
-    const found = await this.tasksService.getTaskById(taskId, user);
+  async validateUserTask(taskId: string, userId: string) {
+    const found = await this.tasksService.getTaskById(taskId, userId);
 
     if (!found)
       throw new NotFoundException(
-        `У пользователя ${user.username} нет задачи с ID: ${taskId}`,
+        `У пользователя ${userId} нет задачи с ID: ${taskId}`,
       );
   }
 }

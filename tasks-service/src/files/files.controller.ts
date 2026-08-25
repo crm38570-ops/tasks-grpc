@@ -8,7 +8,6 @@ import {
   Query,
   StreamableFile,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
@@ -20,9 +19,7 @@ import type {
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { ListFilesReqDto } from './dto/list-files.req.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { User } from '../auth/user.entity';
-import { GetUser } from '../auth/get-user.decorator';
+import { GetUserId } from '../decorators/get-user-id.decorator';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -42,11 +39,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import multer from 'multer';
 import { BadRequestException } from '@nestjs/common';
 import type { Express } from 'express';
+import { createReadStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
 
 @ApiTags('Files')
 @ApiBearerAuth()
 @Controller('files')
-@UseGuards(AuthGuard())
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
@@ -70,7 +70,10 @@ export class FilesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: multer.memoryStorage(),
+      storage: multer.diskStorage({
+        destination: tmpdir(),
+        filename: (_req, _file, callback) => callback(null, randomUUID()),
+      }),
       limits: {
         fileSize: 10 * 1024 * 1024,
       },
@@ -79,27 +82,31 @@ export class FilesController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadFileDto: UploadFileDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<UploadFileResponse> {
     if (!file) {
       throw new BadRequestException('Файл обязателен');
     }
 
-    const { buffer, originalname, mimetype, size } = file;
+    const { path, originalname, mimetype, size } = file;
     const { taskId } = uploadFileDto;
 
-    return this.filesService.uploadFile(
-      {
-        content: buffer,
-        metadata: {
-          fileName: originalname,
-          mimeType: mimetype,
-          size: size,
-          taskId,
+    try {
+      return await this.filesService.uploadFile(
+        {
+          content: createReadStream(path),
+          metadata: {
+            fileName: originalname,
+            mimeType: mimetype,
+            size,
+            taskId,
+          },
         },
-      },
-      user,
-    );
+        userId,
+      );
+    } finally {
+      await unlink(path).catch(() => undefined);
+    }
   }
 
   @ApiOperation({ summary: 'Получение списка файлов задачи' })
@@ -118,9 +125,9 @@ export class FilesController {
   @Get()
   async listFiles(
     @Query() listFilesRequest: ListFilesReqDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<ListFilesResponse> {
-    return this.filesService.listFiles(listFilesRequest, user);
+    return this.filesService.listFiles(listFilesRequest, userId);
   }
 
   @ApiOperation({ summary: 'Скачивание файла' })
@@ -152,11 +159,11 @@ export class FilesController {
   downloadFile(
     @Param() { fileId }: FileIdParamDto,
     @Query() { taskId }: TaskIdQueryDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<StreamableFile> {
     const downloadFileReqDto: DownloadFileReqDto = { fileId, taskId };
 
-    return this.filesService.downloadFile(downloadFileReqDto, user);
+    return this.filesService.downloadFile(downloadFileReqDto, userId);
   }
 
   @ApiOperation({ summary: 'Удаление файла' })
@@ -179,10 +186,10 @@ export class FilesController {
   async deleteFile(
     @Param() { fileId }: FileIdParamDto,
     @Query() { taskId }: TaskIdQueryDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<DeleteFileResponse> {
     const deleteFileReqDto: DeleteFileReqDto = { fileId, taskId };
 
-    return this.filesService.deleteFile(deleteFileReqDto, user);
+    return this.filesService.deleteFile(deleteFileReqDto, userId);
   }
 }

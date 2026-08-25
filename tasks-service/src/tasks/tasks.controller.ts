@@ -7,7 +7,6 @@ import {
   Delete,
   Patch,
   Query,
-  UseGuards,
   Logger,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -19,9 +18,6 @@ import {
   TaskResponseDto,
   UpdateTaskStatusDto,
 } from './dto';
-import { AuthGuard } from '@nestjs/passport';
-import { GetUser } from '../auth/get-user.decorator';
-import { User } from '../auth/user.entity';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -30,11 +26,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { GetUserId } from '../decorators/get-user-id.decorator';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
 @Controller('tasks')
-@UseGuards(AuthGuard())
 export class TasksController {
   private logger = new Logger(`TaskController`);
 
@@ -54,12 +50,12 @@ export class TasksController {
   @Post()
   createTask(
     @Body() createTaskDto: CreateTaskDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<TaskResponseDto> {
     this.logger.verbose(
-      `User "${user.username}" creating a new task. Data ${JSON.stringify(createTaskDto)}`,
+      `User "${userId}" creating a new task. Data ${JSON.stringify(createTaskDto)}`,
     );
-    return this.tasksService.createTask(createTaskDto, user);
+    return this.tasksService.createTask(createTaskDto, userId);
   }
 
   @ApiOperation({ summary: 'Получение всех задач' })
@@ -82,12 +78,12 @@ export class TasksController {
   @Get()
   getTasks(
     @Query() filterDto: GetTasksFilterDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<TaskResponseDto[]> {
     this.logger.verbose(
-      `User "${user.username}" retrieving all tasks. Filters: ${JSON.stringify(filterDto)}`,
+      `User "${userId}" retrieving all tasks. Filters: ${JSON.stringify(filterDto)}`,
     );
-    return this.tasksService.getTasks(filterDto, user);
+    return this.tasksService.getTasks(filterDto, userId);
   }
 
   @ApiOperation({ summary: 'Получение задачи по ID' })
@@ -111,12 +107,10 @@ export class TasksController {
   @Get(':id')
   getTaskById(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<TaskResponseDto> {
-    this.logger.verbose(
-      `User "${user.username}" retrieving task with ID "${id}"`,
-    );
-    return this.tasksService.getTaskById(id, user);
+    this.logger.verbose(`User "${userId}" retrieving task with ID "${id}"`);
+    return this.tasksService.getTaskById(id, userId);
   }
 
   @ApiOperation({ summary: 'Удаление задачи по ID' })
@@ -139,12 +133,10 @@ export class TasksController {
   @Delete(':id')
   deleteTaskById(
     @Param() id: DeleteTaskDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<void> {
-    this.logger.verbose(
-      `User "${user.username}" deleting task with ID "${id.id}"`,
-    );
-    return this.tasksService.deleteTaskById(id, user);
+    this.logger.verbose(`User "${userId}" deleting task with ID "${id.id}"`);
+    return this.tasksService.deleteTaskById(id, userId);
   }
 
   @ApiOperation({ summary: 'Обновление статуса задачи' })
@@ -173,15 +165,15 @@ export class TasksController {
   update(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
-    @GetUser() user: User,
+    @GetUserId() userId: string,
   ): Promise<TaskResponseDto> {
     this.logger.verbose(
-      `User "${user.username}" updating task "${id}" status to "${updateTaskStatusDto.status}"`,
+      `User "${userId}" updating task "${id}" status to "${updateTaskStatusDto.status}"`,
     );
     return this.tasksService.updateTaskStatus(
       id,
       updateTaskStatusDto.status,
-      user,
+      userId,
     );
   }
 }
