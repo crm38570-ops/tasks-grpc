@@ -25,9 +25,9 @@ export class FilesClientService implements OnModuleInit {
   }
 
   uploadFile(
-    uploadFileRequest: UploadFileRequest,
+    uploadFileRequest$: Observable<UploadFileRequest>,
   ): Observable<UploadFileResponse> {
-    return this.filesService.uploadFile(uploadFileRequest);
+    return this.filesService.uploadFile(uploadFileRequest$);
   }
 
   listFiles(request: ListFilesRequest): Observable<ListFilesResponse> {
