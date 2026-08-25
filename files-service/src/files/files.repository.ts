@@ -7,7 +7,7 @@ import {
   FileMetadataResponse,
   ListFilesRequest,
 } from '../proto/files/generated/files_service';
-import { DeleteResult } from 'typeorm/browser';
+import type { DeleteResult } from 'typeorm';
 import { FileEntity } from './file.entity';
 
 @Injectable()
