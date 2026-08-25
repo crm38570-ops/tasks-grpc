@@ -130,6 +130,10 @@ export class FilesService {
 
       validateFileUser({ file, userId });
 
+      await fs.promises.unlink(join(this.FILE_DIR, fileId)).catch((err) => {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      });
+
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 
       if (!result.affected) {
@@ -139,8 +143,6 @@ export class FilesService {
 
         throw new RpcException({ code: status.NOT_FOUND, message });
       }
-
-      await fs.promises.unlink(join(this.FILE_DIR, fileId));
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
