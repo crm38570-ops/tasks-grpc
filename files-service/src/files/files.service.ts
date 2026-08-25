@@ -1,31 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
-import fs from 'node:fs';
+import fs, { createWriteStream } from 'node:fs';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
   ListFilesRequest,
-} from './proto/files/generated/files_service';
+  UploadFileResponse,
+} from '../proto/files/generated/files_service';
 import { join } from 'node:path';
-import {
-  catchError,
-  concat,
-  defer,
-  from,
-  lastValueFrom,
-  map,
-  Observable,
-  of,
-  toArray,
-} from 'rxjs';
+import { catchError, concat, defer, from, map, Observable, of } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
 import { validateFileId } from './services/validate.file-id';
 import { validateFileUser } from './services/validate.file-user';
-import { UploadFileRequestDto } from './dto/upload-file.request.dto';
+import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { validateUploadFileRequest } from './services/validate.upload-file.request';
+import { randomUUID } from 'node:crypto';
+import { once } from 'node:events';
+import { eachValueFrom } from 'rxjs-for-await';
 
 @Injectable()
 export class FilesService {
@@ -47,42 +41,54 @@ export class FilesService {
     }
   }
 
-  async saveFile(uploadFileRequest$: Observable<UploadFileRequestDto>) {
-    const chunks = await lastValueFrom(uploadFileRequest$.pipe(toArray()));
+  async saveFile(
+    uploadFileRequest$: Observable<UploadFileRequestDto>,
+  ): Promise<UploadFileResponse> {
+    const fileId = randomUUID();
+    const filePath = join(this.FILE_DIR, fileId);
+    const writeStream = createWriteStream(filePath);
 
-    if (!chunks.length) {
-      throw new RpcException({
-        code: status.INVALID_ARGUMENT,
-        message: 'Пустой поток',
-      });
-    }
-
-    const [first] = chunks;
-
-    validateUploadFileRequest(first);
-
-    const content = Buffer.concat(chunks.map((chunk) => chunk.content));
-
-    validateUploadFileContent(content);
-
-    const { metadata } = first;
+    let totalBytes = 0;
 
     try {
-      const { fileId } = await this.filesRepository.saveFile(metadata);
+      let firstMessage: UploadFileRequestDto | undefined;
 
-      await fs.promises.writeFile(
-        join(this.FILE_DIR, fileId),
-        Buffer.from(content),
+      for await (const message of eachValueFrom(uploadFileRequest$)) {
+        if (!firstMessage) {
+          validateUploadFileRequest(message);
+          firstMessage = message;
+        }
+
+        totalBytes += message.content.length;
+
+        if (!writeStream.write(message.content)) {
+          await once(writeStream, 'drain');
+        }
+      }
+
+      if (!firstMessage) {
+        throw new RpcException({
+          code: status.INVALID_ARGUMENT,
+          message: 'Пустой поток',
+        });
+      }
+
+      validateUploadFileContent(totalBytes);
+
+      await new Promise<void>((res, rej) =>
+        writeStream.end((err?: Error | null) => (err ? rej(err) : res())),
       );
+
+      const { metadata } = firstMessage;
+
+      await this.filesRepository.saveFile({ fileId, ...metadata });
 
       this.logger.log(`Файл с id ${fileId} успешно сохранён.`);
 
       return { fileId };
     } catch (err) {
-      this.logger.error(
-        `Не удалось сохранить файл: ${(err as RpcException).stack}`,
-      );
-
+      writeStream.destroy();
+      await fs.promises.unlink(filePath).catch(() => undefined);
       throw err;
     }
   }
