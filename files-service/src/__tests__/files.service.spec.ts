@@ -172,18 +172,16 @@ describe('FilesService', () => {
 
       try {
         await service.saveFile(
-          of<UploadFileRequestDto>(
-            {
-              content: new Uint8Array([1, 2, 3]),
-              metadata: {
-                fileName: 'cat.png',
-                mimeType: 'image/png',
-                size: 5,
-                taskId: '11111111-1111-4111-8111-111111111111',
-                userId: '22222222-2222-4222-8222-222222222222',
-              },
-            } as UploadFileRequestDto,
-          ),
+          of<UploadFileRequestDto>({
+            content: new Uint8Array([1, 2, 3]),
+            metadata: {
+              fileName: 'cat.png',
+              mimeType: 'image/png',
+              size: 5,
+              taskId: '11111111-1111-4111-8111-111111111111',
+              userId: '22222222-2222-4222-8222-222222222222',
+            },
+          } as UploadFileRequestDto),
         );
       } catch (err: unknown) {
         caughtError = err;
