@@ -6,7 +6,7 @@ import {
   FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
-} from './proto/files/generated/files_service';
+} from '../proto/files/generated/files_service';
 import { DeleteResult } from 'typeorm/browser';
 import { FileEntity } from './file.entity';
 
@@ -17,7 +17,7 @@ export class FilesRepository extends Repository<FileEntity> {
   }
 
   async saveFile(
-    fileMetadataRequest: FileMetadataRequest,
+    fileMetadataRequest: FileMetadataRequest & { fileId: string },
   ): Promise<FileEntity> {
     return await this.save(this.create(fileMetadataRequest));
   }

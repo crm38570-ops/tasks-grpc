@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, afterEach } from '@jest/globals';
 import { RpcException } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
-import { validateFileId } from '../services/validate.file-id';
+import { validateFileId } from '../files/services/validate.file-id';
 
 describe(`validateFileId`, () => {
   afterEach(() => {

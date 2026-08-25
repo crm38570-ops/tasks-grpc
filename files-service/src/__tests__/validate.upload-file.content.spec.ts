@@ -1,13 +1,13 @@
 import { describe, it, expect } from '@jest/globals';
 import { RpcException } from '@nestjs/microservices';
-import { validateUploadFileContent } from '../services/validate.upload-file.content';
+import { validateUploadFileContent } from '../files/services/validate.upload-file.content';
 
 describe(`validateUploadFileContent`, () => {
-  it(`Возвращает RpcException с кодом 3, если content пуст`, () => {
+  it(`Возвращает RpcException с кодом 3, если size равен 0`, () => {
     let caughtError: unknown;
 
     try {
-      validateUploadFileContent(new Uint8Array(0));
+      validateUploadFileContent(0);
     } catch (err: unknown) {
       caughtError = err;
     }
@@ -19,13 +19,7 @@ describe(`validateUploadFileContent`, () => {
     });
   });
 
-  it(`Не выбрасывает ошибку, если content не пуст`, () => {
-    expect(() =>
-      validateUploadFileContent(new Uint8Array([1, 2, 3])),
-    ).not.toThrow();
-  });
-
-  it(`Не выбрасывает ошибку, если content из нулевых байт`, () => {
-    expect(() => validateUploadFileContent(new Uint8Array([0]))).not.toThrow();
+  it(`Не выбрасывает ошибку, если size больше нуля`, () => {
+    expect(() => validateUploadFileContent(1)).not.toThrow();
   });
 });
