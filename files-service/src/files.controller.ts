@@ -14,10 +14,14 @@ import { DownloadFileRequestDto } from './dto/download-file.request.dto';
 import { RpcValidationPipe } from './pipes/validation.pipe';
 
 @Controller()
+@UsePipes(RpcValidationPipe)
 export class FilesController {
   private logger = new Logger('FilesController', { timestamp: true });
 
-  constructor(private readonly filesService: FilesService) {}
+  constructor(private readonly filesService: FilesService) {
+    // логгер понадобится для exception-filter; заглушка для noUnusedLocals
+    void this.logger;
+  }
 
   @GrpcMethod('FilesService', 'UploadFile')
   async saveFile(
@@ -27,7 +31,6 @@ export class FilesController {
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
-  @UsePipes(RpcValidationPipe)
   async getListFiles(
     listFilesRequest: ListFilesRequestDto,
   ): Promise<ListFilesResponse> {
@@ -35,13 +38,11 @@ export class FilesController {
   }
 
   @GrpcMethod('FilesService', 'DeleteFile')
-  @UsePipes(RpcValidationPipe)
   async deleteFile(deleteFileRequest: DeleteFileRequestDto): Promise<void> {
     return this.filesService.deleteFile(deleteFileRequest);
   }
 
   @GrpcMethod('FilesService', 'DownloadFile')
-  @UsePipes(RpcValidationPipe)
   async downloadFile(
     downloadFileRequest: DownloadFileRequestDto,
   ): Promise<Observable<DownloadFileResponse>> {
