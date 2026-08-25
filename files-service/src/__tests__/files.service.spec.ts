@@ -15,7 +15,7 @@ import {
   FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
-} from '../../proto/files/generated/files_service';
+} from '../proto/files/generated/files_service';
 import { DeleteResult } from 'typeorm';
 import { FileEntity } from '../file.entity';
 import { RpcException } from '@nestjs/microservices';

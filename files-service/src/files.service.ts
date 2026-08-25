@@ -5,23 +5,23 @@ import fs from 'node:fs';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
-  FileMetadataRequest,
   ListFilesRequest,
-} from '../proto/files/generated/files_service';
+} from './proto/files/generated/files_service';
 import { join } from 'node:path';
 import {
   catchError,
+  concat,
   defer,
   from,
   lastValueFrom,
   map,
   Observable,
+  of,
   toArray,
 } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
-import { randomUUID } from 'node:crypto';
 import { validateFileId } from './services/validate.file-id';
 import { validateFileUser } from './services/validate.file-user';
 import { UploadFileRequestDto } from './dto/upload-file.request.dto';
@@ -48,8 +48,6 @@ export class FilesService {
   }
 
   async saveFile(uploadFileRequest$: Observable<UploadFileRequestDto>) {
-    let fileId: string;
-
     const chunks = await lastValueFrom(uploadFileRequest$.pipe(toArray()));
 
     if (!chunks.length) {
@@ -69,14 +67,8 @@ export class FilesService {
 
     const { metadata } = first;
 
-    const normalizedMetadata = {
-      ...metadata,
-      fileName: randomUUID(),
-      size: metadata.size,
-    } as FileMetadataRequest;
-
     try {
-      fileId = (await this.filesRepository.saveFile(normalizedMetadata)).fileId;
+      const { fileId } = await this.filesRepository.saveFile(metadata);
 
       await fs.promises.writeFile(
         join(this.FILE_DIR, fileId),
@@ -160,6 +152,7 @@ export class FilesService {
     this.logger.log(`Download started: userId=${userId}, fileId=${fileId}`);
 
     let file: FileEntity | null;
+
     try {
       validateFileId(fileId, this.logger);
       file =
@@ -183,22 +176,32 @@ export class FilesService {
     return defer(() => {
       this.logger.log(`Download stream opened: fileId=${fileId}`);
 
-      return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
-        map((chunk: Buffer) => ({ chunk })),
-        catchError((err) => {
-          this.logger.error(
-            `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
-          );
+      const { userId, ...fileMetadata } = file;
+      void userId;
 
-          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-            throw new RpcException({
-              code: status.NOT_FOUND,
-              message: 'Файл не найден',
-            });
-          }
-
-          throw err;
+      return concat(
+        of({
+          chunk: new Uint8Array(),
+          metadata: {
+            ...fileMetadata,
+          },
         }),
+        from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
+          map((chunk: Buffer) => ({ chunk, metadata: undefined })),
+          catchError((err) => {
+            this.logger.error(
+              `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
+            );
+            if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+              throw new RpcException({
+                code: status.NOT_FOUND,
+                message: 'Файл не найден',
+              });
+            }
+
+            throw err;
+          }),
+        ),
       );
     });
   }

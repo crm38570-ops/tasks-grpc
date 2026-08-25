@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
-import { FileEntity } from './file.entity';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
   FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
-} from '../proto/files/generated/files_service';
+} from './proto/files/generated/files_service';
 import { DeleteResult } from 'typeorm/browser';
+import { FileEntity } from './file.entity';
 
 @Injectable()
 export class FilesRepository extends Repository<FileEntity> {
-  constructor(private dataSource: DataSource) {
+  constructor(dataSource: DataSource) {
     super(FileEntity, dataSource.createEntityManager());
   }
 

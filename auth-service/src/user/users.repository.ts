@@ -32,7 +32,7 @@ export class UsersRepository extends Repository<User> {
     } catch (error: unknown) {
       this.logger.error(
         `Failed to create user "${username}"`,
-        (error as Error).stack,
+        error instanceof Error ? error.stack : String(error),
       );
 
       if (error instanceof QueryFailedError) {

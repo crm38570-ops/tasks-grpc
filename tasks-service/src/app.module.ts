@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksModule } from './tasks/tasks.module';
-import { AuthModule } from './auth/auth.module';
+import { FilesModule } from './files/files.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
-import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -13,6 +12,7 @@ import { FilesModule } from './files/files.module';
       validationSchema: configValidationSchema,
     }),
     TasksModule,
+    FilesModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -27,8 +27,6 @@ import { FilesModule } from './files/files.module';
         database: configService.get('DB_DATABASE'),
       }),
     }),
-    AuthModule,
-    FilesModule,
   ],
   controllers: [],
   providers: [],
