@@ -1,5 +1,5 @@
 import { ArgumentMetadata, Injectable, ValidationPipe } from '@nestjs/common';
-import { errorsMapper } from '../services/errors.mapper';
+import { errorsMapper } from '../files/services/errors.mapper';
 import { Observable } from 'rxjs';
 
 @Injectable()

@@ -5,18 +5,17 @@ import {
   Param,
   Post,
   Req,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import type { Readable } from 'node:stream';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 
-// files-service — gRPC, наружу его не отдаём:
-// проксируем HTTP-эндпоинты tasks-service, который оборачивает gRPC.
-// ВНИМАНИЕ: files-модуль удалён из tasks-service — решить, кто проксирует файлы (см. TASKS.md).
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
@@ -30,8 +29,16 @@ export class FilesProxyController {
   }
 
   @Post('upload')
-  uploadFile(@Req() _request: AuthedRequest) {
-    // TODO: multipart/form-data форвард (FormData/stream)
+  uploadFile(@Req() request: AuthedRequest) {
+    return this.http
+      .post(`${this.tasksServiceUrl}/files/upload`, request, {
+        headers: {
+          'X-User-Id': request.user.userId,
+          'content-type': request.headers['content-type'],
+          'content-length': request.headers['content-length'],
+        },
+      })
+      .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get()
@@ -46,15 +53,24 @@ export class FilesProxyController {
   }
 
   @Get(':fileId')
-  downloadFile(@Param('fileId') fileId: string, @Req() request: AuthedRequest) {
-    // TODO: стрим ответа вниз по течению (responseType: 'stream')
-    return this.http
-      .get(`${this.tasksServiceUrl}/files/${fileId}`, {
+  async downloadFile(
+    @Param('fileId') fileId: string,
+    @Req() request: AuthedRequest,
+  ): Promise<StreamableFile> {
+    const response = await firstValueFrom(
+      this.http.get(`${this.tasksServiceUrl}/files/${fileId}`, {
         headers: {
           'X-User-Id': request.user.userId,
         },
-      })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+        responseType: 'stream',
+      }),
+    );
+
+    return new StreamableFile(response.data as Readable, {
+      type: response.headers['content-type'] as string | undefined,
+      disposition: response.headers['content-disposition'] as
+        string | undefined,
+    });
   }
 
   @Delete(':fileId')
