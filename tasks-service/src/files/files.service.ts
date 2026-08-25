@@ -1,4 +1,4 @@
-import { catchError, firstValueFrom, map, throwError } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, throwError } from 'rxjs';
 import {
   DeleteFileResponse,
   ListFilesResponse,
@@ -20,6 +20,7 @@ import { TasksService } from '../tasks/tasks.service';
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { UploadFileInputInterface } from './interfaces';
+import { handleFileError } from './services/handle.file.error';
 
 @Injectable()
 export class FilesService {
@@ -30,21 +31,11 @@ export class FilesService {
     private readonly tasksService: TasksService,
   ) {}
 
-  private handleFileError(error: unknown): never {
-    const grpcError = error as { code?: number };
-
-    if (grpcError.code === 5) {
-      throw new NotFoundException('Файл не найден');
-    }
-
-    throw error;
-  }
-
   async uploadFile(
-    uploadFileInputInterface: UploadFileInputInterface,
+    uploadFileInput: UploadFileInputInterface,
     userId: string,
   ): Promise<UploadFileResponse> {
-    const { metadata, content } = uploadFileInputInterface;
+    const { metadata, content } = uploadFileInput;
 
     if (!metadata) {
       throw new BadRequestException('Метаданные файла обязательны');
@@ -56,14 +47,22 @@ export class FilesService {
 
     await this.validateUserTask(taskId, userId);
 
-    const grpcRequest: UploadFileRequest = {
-      content: content,
-      metadata: { ...metadata, userId: userId },
-    };
+    const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
+      subscriber.next({
+        content: new Uint8Array(0),
+        metadata: { ...metadata, userId },
+      });
+
+      content.on('data', (chunk: Buffer) =>
+        subscriber.next({ content: chunk, metadata: undefined }),
+      );
+      content.on('end', () => subscriber.complete());
+      content.on('error', (error: Error) => subscriber.error(error));
+    });
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.uploadFile(grpcRequest),
+        this.filesClientService.uploadFile(grpcRequest$),
       );
 
       this.logger.log(
@@ -99,7 +98,7 @@ export class FilesService {
         `List failed: userId=${userId}, taskId=${taskId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
@@ -175,7 +174,7 @@ export class FilesService {
         `Delete failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 

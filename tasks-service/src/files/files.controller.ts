@@ -39,6 +39,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import multer from 'multer';
 import { BadRequestException } from '@nestjs/common';
 import type { Express } from 'express';
+import { createReadStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
 
 @ApiTags('Files')
 @ApiBearerAuth()
@@ -66,7 +70,10 @@ export class FilesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: multer.memoryStorage(),
+      storage: multer.diskStorage({
+        destination: tmpdir(),
+        filename: (_req, _file, callback) => callback(null, randomUUID()),
+      }),
       limits: {
         fileSize: 10 * 1024 * 1024,
       },
@@ -81,21 +88,25 @@ export class FilesController {
       throw new BadRequestException('Файл обязателен');
     }
 
-    const { buffer, originalname, mimetype, size } = file;
+    const { path, originalname, mimetype, size } = file;
     const { taskId } = uploadFileDto;
 
-    return this.filesService.uploadFile(
-      {
-        content: buffer,
-        metadata: {
-          fileName: originalname,
-          mimeType: mimetype,
-          size: size,
-          taskId,
+    try {
+      return await this.filesService.uploadFile(
+        {
+          content: createReadStream(path),
+          metadata: {
+            fileName: originalname,
+            mimeType: mimetype,
+            size,
+            taskId,
+          },
         },
-      },
-      userId,
-    );
+        userId,
+      );
+    } finally {
+      await unlink(path).catch(() => undefined);
+    }
   }
 
   @ApiOperation({ summary: 'Получение списка файлов задачи' })

@@ -7,7 +7,7 @@ message FileMetadataRequest {
   string mime_type                      = 2;
   int64  size                           = 3;
   string task_id                        = 4;
-  string user_id                        = 5;
+  string user_id                        = 5; // Проверить, нужно ли это поле
 }
 
 message FileMetadataResponse {
@@ -16,7 +16,7 @@ message FileMetadataResponse {
   string mime_type                      = 3;
   int64  size                           = 4;
   string task_id                        = 5;
-  string uploaded_at = 6;
+  string uploaded_at                    = 6;
 }
 
 message UploadFileRequest {
@@ -46,7 +46,7 @@ message DeleteFileResponse {}
 
 message DownloadFileRequest {
   string file_id = 1;
-  string user_id = 2; 
+  string user_id = 2;
 }
 
 message DownloadFileResponse {
@@ -55,7 +55,7 @@ message DownloadFileResponse {
 }
 
 service FilesService {
-  rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
+  rpc UploadFile (stream UploadFileRequest) returns (UploadFileResponse);
   rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
   rpc DeleteFile (DeleteFileRequest) returns (DeleteFileResponse);
   rpc DownloadFile (DownloadFileRequest) returns (stream DownloadFileResponse);
