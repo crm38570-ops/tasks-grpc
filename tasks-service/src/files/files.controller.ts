@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   StreamableFile,
   UploadedFile,
   UseInterceptors,
@@ -38,7 +39,7 @@ import { UploadFileDto } from './dto/upload-file.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import multer from 'multer';
 import { BadRequestException } from '@nestjs/common';
-import type { Express } from 'express';
+import type { Express, Request } from 'express';
 import { createReadStream } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -160,10 +161,11 @@ export class FilesController {
     @Param() { fileId }: FileIdParamDto,
     @Query() { taskId }: TaskIdQueryDto,
     @GetUserId() userId: string,
+    @Req() req: Request,
   ): Promise<StreamableFile> {
     const downloadFileReqDto: DownloadFileReqDto = { fileId, taskId };
 
-    return this.filesService.downloadFile(downloadFileReqDto, userId);
+    return this.filesService.downloadFile(downloadFileReqDto, userId, req);
   }
 
   @ApiOperation({ summary: 'Удаление файла' })
