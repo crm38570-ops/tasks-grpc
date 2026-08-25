@@ -4,6 +4,9 @@
 /build
 *.tsbuildinfo
 
+# generated proto types
+/src/proto/*/generated
+
 # Logs
 logs
 *.log
