@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { RpcException } from '@nestjs/microservices';
-import { validateFileUser } from '../services/validate.file-user';
-import { FileEntity } from '../file.entity';
+import { validateFileUser } from '../files/services/validate.file-user';
+import { FileEntity } from '../files/file.entity';
 import { mockFileUserId } from './variables';
 
 describe(`validateFileUser`, () => {
