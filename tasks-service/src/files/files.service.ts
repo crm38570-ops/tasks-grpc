@@ -1,4 +1,4 @@
-import { catchError, firstValueFrom, map, throwError } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, throwError } from 'rxjs';
 import {
   DeleteFileResponse,
   ListFilesResponse,
@@ -41,10 +41,10 @@ export class FilesService {
   }
 
   async uploadFile(
-    uploadFileInputInterface: UploadFileInputInterface,
+    uploadFileInput: UploadFileInputInterface,
     userId: string,
   ): Promise<UploadFileResponse> {
-    const { metadata, content } = uploadFileInputInterface;
+    const { metadata, content } = uploadFileInput;
 
     if (!metadata) {
       throw new BadRequestException('Метаданные файла обязательны');
@@ -56,14 +56,22 @@ export class FilesService {
 
     await this.validateUserTask(taskId, userId);
 
-    const grpcRequest: UploadFileRequest = {
-      content: content,
-      metadata: { ...metadata, userId: userId },
-    };
+    const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
+      subscriber.next({
+        content: new Uint8Array(0),
+        metadata: { ...metadata, userId },
+      });
+
+      content.on('data', (chunk: Buffer) =>
+        subscriber.next({ content: chunk, metadata: undefined }),
+      );
+      content.on('end', () => subscriber.complete());
+      content.on('error', (error: Error) => subscriber.error(error));
+    });
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.uploadFile(grpcRequest),
+        this.filesClientService.uploadFile(grpcRequest$),
       );
 
       this.logger.log(
