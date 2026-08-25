@@ -1,11 +1,8 @@
 import { Module } from '@nestjs/common';
-
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.schema';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { FilesModule } from './files.module';
-import { GrpcExceptionFilter } from './common/filters/grpc-exception.filter';
-import { APP_FILTER } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -14,12 +11,12 @@ import { APP_FILTER } from '@nestjs/core';
       validationSchema: configValidationSchema,
     }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule, FilesModule],
+      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: process.env.STAGE === 'dev' ? true : false,
+        synchronize: process.env.STAGE === 'prod' ? false : true,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),
@@ -27,13 +24,9 @@ import { APP_FILTER } from '@nestjs/core';
         database: configService.get('DB_DATABASE'),
       }),
     }),
-    FilesModule,
+    AuthModule,
   ],
-  providers: [
-    {
-      provide: APP_FILTER,
-      useClass: GrpcExceptionFilter,
-    },
-  ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

@@ -6,8 +6,7 @@ import {
 import { DataSource, Repository } from 'typeorm';
 import { Task } from './task.entity';
 import { CreateTaskDto, GetTasksFilterDto } from './dto';
-import { TaskStatus } from './task-status.enum';
-import { User } from '../auth/user.entity';
+import { TaskStatus } from './enums/task-status.enum';
 
 @Injectable()
 export class TasksRepository extends Repository<Task> {
@@ -19,36 +18,39 @@ export class TasksRepository extends Repository<Task> {
 
   async createTask(
     { title, description }: CreateTaskDto,
-    user: User,
+    userId: string,
   ): Promise<Task> {
     const task = this.create({
       title,
       description,
       status: TaskStatus.OPEN,
-      user,
+      userId,
     });
 
     try {
       await this.save(task);
     } catch (error) {
       this.logger.error(
-        `Failed to create task for user "${user.username}": ${title}`,
+        `Failed to create task for userId "${userId}": ${title}`,
         error,
       );
       throw new InternalServerErrorException();
     }
 
-    this.logger.log(`Task "${task.title}" created for user "${user.username}"`);
+    this.logger.log(`Task "${task.title}" created for user "${userId}"`);
 
     return task;
   }
 
-  async getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
+  async getTasks(
+    filterDto: GetTasksFilterDto,
+    userId: string,
+  ): Promise<Task[]> {
     const { status, searchQuery } = filterDto;
 
     const query = this.createQueryBuilder('task');
 
-    query.where({ user });
+    query.where({ userId });
 
     if (status) query.andWhere('task.status = :status', { status });
 
@@ -63,7 +65,7 @@ export class TasksRepository extends Repository<Task> {
       return tasks;
     } catch (error) {
       this.logger.error(
-        `Failed to get tasks for user "${user.username}". Filters: ${JSON.stringify(filterDto)}`,
+        `Failed to get tasks for userId "${userId}". Filters: ${JSON.stringify(filterDto)}`,
         error,
       );
       throw new InternalServerErrorException();
