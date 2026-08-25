@@ -59,6 +59,7 @@ export interface DownloadFileRequest {
 }
 
 export interface DownloadFileResponse {
+  metadata: FileMetadataResponse | undefined;
   chunk: Uint8Array;
 }
 
