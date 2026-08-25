@@ -152,6 +152,56 @@ describe('FilesService', () => {
     }
   });
 
+  it('saveFile возвращает RpcException, если content.length не совпадает с metadata.size', async () => {
+    const fakeWriteStream = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(fakeWriteStream as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    try {
+      let caughtError: unknown;
+
+      try {
+        await service.saveFile(
+          of<UploadFileRequestDto>(
+            {
+              content: new Uint8Array([1, 2, 3]),
+              metadata: {
+                fileName: 'cat.png',
+                mimeType: 'image/png',
+                size: 5,
+                taskId: '11111111-1111-4111-8111-111111111111',
+                userId: '22222222-2222-4222-8222-222222222222',
+              },
+            } as UploadFileRequestDto,
+          ),
+        );
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeInstanceOf(RpcException);
+      expect((caughtError as RpcException).getError()).toEqual({
+        code: 3,
+        message: 'Размер content (3) не совпадает с metadata.size (5)',
+      });
+      expect(mockRepo.saveFile).not.toHaveBeenCalled();
+      expect(unlinkSpy).toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
   it('saveFile возвращает RpcException, если metadata невалидна', async () => {
     const createWriteStreamSpy = jest
       .spyOn(fs, 'createWriteStream')
