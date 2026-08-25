@@ -7,14 +7,17 @@ import {
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
-import type { Request } from 'express';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 
 @Controller('tasks')
+@UseGuards(JwtAuthGuard)
 export class TasksProxyController {
   private readonly tasksServiceUrl: string;
 
@@ -26,44 +29,44 @@ export class TasksProxyController {
   }
 
   @Post()
-  createTask(@Body() body: unknown, @Req() request: Request) {
+  createTask(@Body() body: unknown, @Req() request: AuthedRequest) {
     return this.http
       .post(`${this.tasksServiceUrl}/tasks`, body, {
         headers: {
-          Authorization: request.headers.authorization,
+          'X-User-Id': request.user.userId,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get()
-  getTasks(@Req() request: Request) {
+  getTasks(@Req() request: AuthedRequest) {
     return this.http
       .get(`${this.tasksServiceUrl}/tasks`, {
         headers: {
-          Authorization: request.headers.authorization,
+          'X-User-Id': request.user.userId,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Get(':id')
-  getTask(@Param('id') id: string, @Req() request: Request) {
+  getTask(@Param('id') id: string, @Req() request: AuthedRequest) {
     return this.http
       .get(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          Authorization: request.headers.authorization,
+          'X-User-Id': request.user.userId,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @Delete(':id')
-  deleteTask(@Param('id') id: string, @Req() request: Request) {
+  deleteTask(@Param('id') id: string, @Req() request: AuthedRequest) {
     return this.http
       .delete(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          Authorization: request.headers.authorization,
+          'X-User-Id': request.user.userId,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -73,12 +76,12 @@ export class TasksProxyController {
   updateTaskStatus(
     @Param('id') id: string,
     @Body() body: unknown,
-    @Req() request: Request,
+    @Req() request: AuthedRequest,
   ) {
     return this.http
       .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body, {
         headers: {
-          Authorization: request.headers.authorization,
+          'X-User-Id': request.user.userId,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));

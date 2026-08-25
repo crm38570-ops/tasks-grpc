@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { GatewayModule } from './gateway/gateway.module';
 import { AuthProxyModule } from './proxies/auth/auth-proxy.module';
 import { TasksProxyModule } from './proxies/tasks/tasks-proxy.module';
@@ -13,6 +14,14 @@ import { AxiosExceptionFilter } from './filters/axios-exception.filter';
     ConfigModule.forRoot({
       envFilePath: `.env.stage.${process.env.STAGE}`,
       validationSchema: configValidationSchema,
+    }),
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow('JWT_SECRET'),
+      }),
     }),
     GatewayModule,
     AuthProxyModule,
