@@ -12,7 +12,7 @@ import { FileEntity } from './file.entity';
 
 @Injectable()
 export class FilesRepository extends Repository<FileEntity> {
-  constructor(private dataSource: DataSource) {
+  constructor(dataSource: DataSource) {
     super(FileEntity, dataSource.createEntityManager());
   }
 
