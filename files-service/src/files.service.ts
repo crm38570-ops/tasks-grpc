@@ -10,11 +10,13 @@ import {
 import { join } from 'node:path';
 import {
   catchError,
+  concat,
   defer,
   from,
   lastValueFrom,
   map,
   Observable,
+  of,
   toArray,
 } from 'rxjs';
 import { status } from '@grpc/grpc-js';
@@ -150,6 +152,7 @@ export class FilesService {
     this.logger.log(`Download started: userId=${userId}, fileId=${fileId}`);
 
     let file: FileEntity | null;
+
     try {
       validateFileId(fileId, this.logger);
       file =
@@ -173,22 +176,32 @@ export class FilesService {
     return defer(() => {
       this.logger.log(`Download stream opened: fileId=${fileId}`);
 
-      return from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
-        map((chunk: Buffer) => ({ chunk })),
-        catchError((err) => {
-          this.logger.error(
-            `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
-          );
+      const { userId, ...fileMetadata } = file;
+      void userId;
 
-          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-            throw new RpcException({
-              code: status.NOT_FOUND,
-              message: 'Файл не найден',
-            });
-          }
-
-          throw err;
+      return concat(
+        of({
+          chunk: new Uint8Array(),
+          metadata: {
+            ...fileMetadata,
+          },
         }),
+        from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
+          map((chunk: Buffer) => ({ chunk, metadata: undefined })),
+          catchError((err) => {
+            this.logger.error(
+              `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
+            );
+            if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+              throw new RpcException({
+                code: status.NOT_FOUND,
+                message: 'Файл не найден',
+              });
+            }
+
+            throw err;
+          }),
+        ),
       );
     });
   }

@@ -50,7 +50,8 @@ message DownloadFileRequest {
 }
 
 message DownloadFileResponse {
-  bytes chunk = 1;
+  FileMetadataResponse metadata = 1;
+  bytes chunk = 2;
 }
 
 service FilesService {
