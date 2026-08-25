@@ -5,7 +5,6 @@ import fs from 'node:fs';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
-  FileMetadataRequest,
   ListFilesRequest,
 } from './proto/files/generated/files_service';
 import { join } from 'node:path';
@@ -21,7 +20,6 @@ import {
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
-import { randomUUID } from 'node:crypto';
 import { validateFileId } from './services/validate.file-id';
 import { validateFileUser } from './services/validate.file-user';
 import { UploadFileRequestDto } from './dto/upload-file.request.dto';
@@ -48,8 +46,6 @@ export class FilesService {
   }
 
   async saveFile(uploadFileRequest$: Observable<UploadFileRequestDto>) {
-    let fileId: string;
-
     const chunks = await lastValueFrom(uploadFileRequest$.pipe(toArray()));
 
     if (!chunks.length) {
@@ -69,14 +65,8 @@ export class FilesService {
 
     const { metadata } = first;
 
-    const normalizedMetadata = {
-      ...metadata,
-      fileName: randomUUID(),
-      size: metadata.size,
-    } as FileMetadataRequest;
-
     try {
-      fileId = (await this.filesRepository.saveFile(normalizedMetadata)).fileId;
+      const { fileId } = await this.filesRepository.saveFile(metadata);
 
       await fs.promises.writeFile(
         join(this.FILE_DIR, fileId),
