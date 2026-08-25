@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksModule } from './tasks/tasks.module';
+import { FilesModule } from './files/files.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
 
@@ -11,6 +12,7 @@ import { configValidationSchema } from './config.chema';
       validationSchema: configValidationSchema,
     }),
     TasksModule,
+    FilesModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
