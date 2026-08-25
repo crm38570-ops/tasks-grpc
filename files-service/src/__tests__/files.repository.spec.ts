@@ -3,7 +3,7 @@ import { FilesRepository } from '../files.repository';
 import { DataSource, DeleteResult, SelectQueryBuilder } from 'typeorm';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { FileEntity } from '../file.entity';
-import { FileMetadataRequest } from '../../proto/files/generated/files_service';
+import { FileMetadataRequest } from '../proto/files/generated/files_service';
 import { RpcException } from '@nestjs/microservices';
 
 describe(`FilesRepository`, () => {

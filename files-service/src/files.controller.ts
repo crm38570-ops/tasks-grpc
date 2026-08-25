@@ -3,7 +3,7 @@ import type {
   DownloadFileResponse,
   ListFilesResponse,
   UploadFileResponse,
-} from '../proto/files/generated/files_service';
+} from './proto/files/generated/files_service';
 import { GrpcMethod } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { FilesService } from './files.service';

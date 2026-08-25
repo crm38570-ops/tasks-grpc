@@ -7,7 +7,7 @@ import {
   DownloadFileRequest,
   FileMetadataRequest,
   ListFilesRequest,
-} from '../proto/files/generated/files_service';
+} from './proto/files/generated/files_service';
 import { join } from 'node:path';
 import {
   catchError,
