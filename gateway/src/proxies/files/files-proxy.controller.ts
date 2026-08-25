@@ -68,7 +68,8 @@ export class FilesProxyController {
 
     return new StreamableFile(response.data as Readable, {
       type: response.headers['content-type'] as string | undefined,
-      disposition: response.headers['content-disposition'] as string | undefined,
+      disposition: response.headers['content-disposition'] as
+        string | undefined,
     });
   }
 
