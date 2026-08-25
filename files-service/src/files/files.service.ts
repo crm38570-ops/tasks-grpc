@@ -73,7 +73,7 @@ export class FilesService {
         });
       }
 
-      validateUploadFileContent(totalBytes);
+      validateUploadFileContent(totalBytes, firstMessage.metadata.size);
 
       await new Promise<void>((res, rej) =>
         writeStream.end((err?: Error | null) => (err ? rej(err) : res())),
