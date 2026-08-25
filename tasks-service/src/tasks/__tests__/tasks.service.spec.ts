@@ -1,10 +1,9 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { TasksService } from './tasks.service';
+import { TasksService } from '../tasks.service';
 import { Test } from '@nestjs/testing';
-import { TasksRepository } from './tasks.repository';
-import { User } from '../auth/user.entity';
-import { Task } from './task.entity';
-import { TaskStatus } from './task-status.enum';
+import { TasksRepository } from '../tasks.repository';
+import { Task } from '../task.entity';
+import { TaskStatus } from '../enums/task-status.enum';
 import { NotFoundException } from '@nestjs/common';
 
 const mockTasksRepository = {
@@ -13,17 +12,14 @@ const mockTasksRepository = {
   updateTaskStatus: jest.fn<(task: Task) => Promise<Task>>(),
 };
 
-const mockUser = {
-  id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-  username: 'test_user',
-} as User;
+const mockUserId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
 const mockTask = {
   id: '3f2c1b8a-9d4e-4f6a-8c1b-2a3b4c5d6e7f',
   title: 'Завязать тапки в узел',
   description: 'Не простая задача',
   status: TaskStatus.OPEN,
-  user: mockUser,
+  userId: mockUserId,
 } as Task;
 
 const mockTaskWithStatusDone = { ...mockTask, status: TaskStatus.DONE };
@@ -49,7 +45,7 @@ describe('TaskService', () => {
   it('Возвращает задачу если она найдена', async () => {
     mockTasksRepository.findOne.mockResolvedValue(mockTask);
 
-    const result = await service.getTaskById(mockTask.id, mockUser);
+    const result = await service.getTaskById(mockTask.id, mockUserId);
 
     expect(result).toEqual(mockTask);
   });
@@ -57,7 +53,7 @@ describe('TaskService', () => {
   it('Бросает NotFoundException, если задача не найдена', async () => {
     mockTasksRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.getTaskById(mockTask.id, mockUser)).rejects.toThrow(
+    await expect(service.getTaskById(mockTask.id, mockUserId)).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -70,7 +66,7 @@ describe('TaskService', () => {
 
     const { id, status } = mockTaskWithStatusDone;
 
-    const result = await service.updateTaskStatus(id, status, mockUser);
+    const result = await service.updateTaskStatus(id, status, mockUserId);
 
     expect(result.status).toBe(mockTaskWithStatusDone.status);
     expect(mockTasksRepository.updateTaskStatus).toHaveBeenCalledWith(
