@@ -20,6 +20,7 @@ import { TasksService } from '../tasks/tasks.service';
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { UploadFileInputInterface } from './interfaces';
+import { handleFileError } from './services/handle.file.error';
 
 @Injectable()
 export class FilesService {
@@ -29,16 +30,6 @@ export class FilesService {
     private readonly filesClientService: FilesClientService,
     private readonly tasksService: TasksService,
   ) {}
-
-  private handleFileError(error: unknown): never {
-    const grpcError = error as { code?: number };
-
-    if (grpcError.code === 5) {
-      throw new NotFoundException('Файл не найден');
-    }
-
-    throw error;
-  }
 
   async uploadFile(
     uploadFileInput: UploadFileInputInterface,
@@ -107,7 +98,7 @@ export class FilesService {
         `List failed: userId=${userId}, taskId=${taskId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
@@ -183,7 +174,7 @@ export class FilesService {
         `Delete failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
