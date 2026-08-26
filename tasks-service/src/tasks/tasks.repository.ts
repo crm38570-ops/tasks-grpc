@@ -10,7 +10,7 @@ import { TaskStatus } from './enums/task-status.enum';
 
 @Injectable()
 export class TasksRepository extends Repository<Task> {
-  private logger = new Logger(`TaskRepository`, { timestamp: true });
+  private readonly logger = new Logger('TasksRepository', { timestamp: true });
 
   constructor(private readonly dataSource: DataSource) {
     super(Task, dataSource.createEntityManager());

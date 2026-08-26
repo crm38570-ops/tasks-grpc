@@ -50,7 +50,7 @@ import { tmpdir } from 'node:os';
 @ApiBearerAuth()
 @Controller('files')
 export class FilesController {
-  private readonly logger = new Logger('FilesController');
+  private readonly logger = new Logger('FilesController', { timestamp: true });
 
   constructor(private readonly filesService: FilesService) {}
 

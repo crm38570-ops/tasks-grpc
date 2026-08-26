@@ -7,7 +7,7 @@ import { TaskStatus } from './enums/task-status.enum';
 
 @Injectable()
 export class TasksService {
-  private logger = new Logger(`TaskService`);
+  private readonly logger = new Logger('TasksService', { timestamp: true });
 
   constructor(private tasksRepository: TasksRepository) {}
 

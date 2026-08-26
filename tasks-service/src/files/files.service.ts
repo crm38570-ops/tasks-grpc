@@ -34,7 +34,7 @@ import type { Request } from 'express';
 
 @Injectable()
 export class FilesService {
-  private readonly logger = new Logger('FilesService');
+  private readonly logger = new Logger('FilesService', { timestamp: true });
 
   constructor(
     private readonly filesClientService: FilesClientService,
