@@ -23,7 +23,7 @@ import { eachValueFrom } from 'rxjs-for-await';
 
 @Injectable()
 export class FilesService {
-  private logger = new Logger('FilesService', { timestamp: true });
+  private readonly logger = new Logger('FilesService', { timestamp: true });
   private FILE_DIR: string;
 
   constructor(private readonly filesRepository: FilesRepository) {
@@ -34,8 +34,9 @@ export class FilesService {
     try {
       await fs.promises.mkdir(this.FILE_DIR, { recursive: true });
     } catch (err) {
+      const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Не удалось создать директорию ${this.FILE_DIR}: ${(err as Error).stack}`,
+        `Не удалось создать директорию ${this.FILE_DIR}: ${stack}`,
       );
       throw err;
     }
@@ -87,8 +88,9 @@ export class FilesService {
       return { fileId };
     } catch (err) {
       const metadata = firstMessage?.metadata;
+      const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${(err as Error).stack}`,
+        `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${stack}`,
       );
       writeStream.destroy();
       await fs.promises.unlink(filePath).catch(() => undefined);
@@ -169,9 +171,8 @@ export class FilesService {
       file =
         await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
     } catch (err) {
-      this.logger.error(
-        `Ошибка при проверке доступа к файлу: ${(err as Error).stack}`,
-      );
+      const stack = err instanceof Error ? err.stack : String(err);
+      this.logger.error(`Ошибка при проверке доступа к файлу: ${stack}`);
       throw err;
     }
 
@@ -200,9 +201,8 @@ export class FilesService {
         from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
           map((chunk: Buffer) => ({ chunk, metadata: undefined })),
           catchError((err) => {
-            this.logger.error(
-              `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
-            );
+            const stack = err instanceof Error ? err.stack : String(err);
+            this.logger.error(`Ошибка чтения файла ${fileId}: ${stack}`);
             if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
               throw new RpcException({
                 code: status.NOT_FOUND,

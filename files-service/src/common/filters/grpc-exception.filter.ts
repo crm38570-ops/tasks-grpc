@@ -4,7 +4,9 @@ import { status } from '@grpc/grpc-js';
 
 @Catch()
 export class GrpcExceptionFilter implements ExceptionFilter {
-  private logger = new Logger('GrpcExceptionFilter', { timestamp: true });
+  private readonly logger = new Logger('GrpcExceptionFilter', {
+    timestamp: true,
+  });
 
   catch(exception: unknown, _host: ArgumentsHost) {
     if (exception instanceof RpcException) {
