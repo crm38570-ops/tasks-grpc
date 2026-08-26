@@ -30,7 +30,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: process.env.STAGE === 'prod' ? false : true,
+        synchronize: false,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),
