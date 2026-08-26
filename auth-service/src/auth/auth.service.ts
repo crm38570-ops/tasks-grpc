@@ -8,7 +8,7 @@ import { JwtAccessToken } from './types/jwt-access-token.interface';
 
 @Injectable()
 export class AuthService {
-  private logger = new Logger(`AuthService`);
+  private readonly logger = new Logger('AuthService', { timestamp: true });
 
   constructor(
     private usersRepository: UsersRepository,

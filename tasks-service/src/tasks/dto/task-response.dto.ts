@@ -4,7 +4,8 @@ import { TaskStatus } from '../enums/task-status.enum';
 export class TaskResponseDto {
   @ApiProperty({
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    description: 'uuid v4',
+    format: 'uuid',
+    description: 'UUID v4',
   })
   id: string;
 
@@ -17,7 +18,7 @@ export class TaskResponseDto {
   @ApiProperty({
     example:
       'Основная тема - "Капибары, почему все мы их так любим?". Использовать ChatGPT 5.6 Sol для максимального погружения в тему',
-    description: 'Заголовок задачи',
+    description: 'Описание задачи',
   })
   description: string;
 

@@ -22,7 +22,6 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -59,11 +58,6 @@ export class TasksController {
   }
 
   @ApiOperation({ summary: 'Получение всех задач' })
-  @ApiQuery({
-    type: GetTasksFilterDto,
-    description:
-      'Фильтры: status (OPEN/IN_PROGRESS/DONE) и searchQuery (поиск по title/description)',
-  })
   @ApiResponse({
     status: 200,
     description: 'Массив задач (может быть пустым)',
@@ -100,6 +94,10 @@ export class TasksController {
     type: TaskResponseDto,
   })
   @ApiResponse({
+    status: 400,
+    description: 'Некорректный UUID задачи',
+  })
+  @ApiResponse({
     status: 404,
     description: 'Задача не найдена или не принадлежит пользователю',
   })
@@ -124,6 +122,10 @@ export class TasksController {
   @ApiResponse({
     status: 200,
     description: 'Задача удалена',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректный UUID задачи',
   })
   @ApiResponse({
     status: 404,
@@ -154,7 +156,7 @@ export class TasksController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Некорректный status',
+    description: 'Некорректный UUID задачи или status',
   })
   @ApiResponse({
     status: 404,
