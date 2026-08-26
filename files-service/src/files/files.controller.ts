@@ -27,6 +27,7 @@ export class FilesController {
   async saveFile(
     uploadFileRequest$: Observable<UploadFileRequestDto>,
   ): Promise<UploadFileResponse> {
+    this.logger.verbose('Upload request received');
     return this.filesService.saveFile(uploadFileRequest$);
   }
 
@@ -34,11 +35,17 @@ export class FilesController {
   async getListFiles(
     listFilesRequest: ListFilesRequestDto,
   ): Promise<ListFilesResponse> {
+    this.logger.verbose(
+      `List files request received: taskId=${listFilesRequest.taskId}, userId=${listFilesRequest.userId}`,
+    );
     return this.filesService.getListFiles(listFilesRequest);
   }
 
   @GrpcMethod('FilesService', 'DeleteFile')
   async deleteFile(deleteFileRequest: DeleteFileRequestDto): Promise<void> {
+    this.logger.verbose(
+      `Delete file request received: fileId=${deleteFileRequest.fileId}, userId=${deleteFileRequest.userId}`,
+    );
     return this.filesService.deleteFile(deleteFileRequest);
   }
 
@@ -46,6 +53,9 @@ export class FilesController {
   async downloadFile(
     downloadFileRequest: DownloadFileRequestDto,
   ): Promise<Observable<DownloadFileResponse>> {
+    this.logger.verbose(
+      `Download file request received: fileId=${downloadFileRequest.fileId}, userId=${downloadFileRequest.userId}`,
+    );
     return this.filesService.downloadFile(downloadFileRequest);
   }
 }
