@@ -8,7 +8,7 @@ import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  private logger = new Logger(`AuthController`);
+  private readonly logger = new Logger('AuthController', { timestamp: true });
 
   constructor(private authService: AuthService) {}
 

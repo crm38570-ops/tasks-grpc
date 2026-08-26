@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersRepository extends Repository<User> {
-  private logger = new Logger(`UsersRepository`, { timestamp: true });
+  private readonly logger = new Logger('UsersRepository', { timestamp: true });
 
   constructor(private dataSource: DataSource) {
     super(User, dataSource.createEntityManager());
