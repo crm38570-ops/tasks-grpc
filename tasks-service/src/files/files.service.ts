@@ -132,6 +132,9 @@ export class FilesService {
     );
 
     if (!hasAccess) {
+      this.logger.warn(
+        `Download rejected: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=file_not_found`,
+      );
       throw new NotFoundException('Файл не найден');
     }
 
@@ -160,6 +163,9 @@ export class FilesService {
     const metadata = firstResponse.metadata;
 
     if (!metadata) {
+      this.logger.error(
+        `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=missing_metadata`,
+      );
       throw new Error(`Files service returned no metadata`);
     }
 
@@ -173,6 +179,9 @@ export class FilesService {
     );
 
     req.once('close', () => {
+      this.logger.debug(
+        `Download client disconnected: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
+      );
       subscription.unsubscribe();
     });
 

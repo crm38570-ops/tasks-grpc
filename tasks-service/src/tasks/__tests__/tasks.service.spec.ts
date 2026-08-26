@@ -58,6 +58,28 @@ describe('TaskService', () => {
     );
   });
 
+  it('Удаляет задачу', async () => {
+    mockTasksRepository.delete.mockResolvedValue({ affected: 1 });
+
+    await expect(
+      service.deleteTaskById({ id: mockTask.id }, mockUserId),
+    ).resolves.toBeUndefined();
+
+    expect(mockTasksRepository.delete).toHaveBeenCalledWith({
+      id: mockTask.id,
+      userId: mockUserId,
+    });
+  });
+
+  it('Пробрасывает ошибку репозитория при удалении задачи', async () => {
+    const error = new Error('Database error');
+    mockTasksRepository.delete.mockRejectedValue(error);
+
+    await expect(
+      service.deleteTaskById({ id: mockTask.id }, mockUserId),
+    ).rejects.toBe(error);
+  });
+
   it('Обновляет статус задачи', async () => {
     mockTasksRepository.findOne.mockResolvedValue(mockTask);
     mockTasksRepository.updateTaskStatus.mockResolvedValue(
