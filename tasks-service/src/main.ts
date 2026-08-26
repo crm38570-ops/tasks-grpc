@@ -2,8 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './interceptors';
-import { SwaggerModule } from '@nestjs/swagger';
-import { config } from './swagger-config';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
@@ -15,10 +13,6 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalInterceptors(new TransformInterceptor());
-
-  const document = SwaggerModule.createDocument(app, config);
-
-  if (process.env.STAGE !== 'prod') SwaggerModule.setup('api', app, document);
 
   await app.listen(port);
   logger.log(`Application started: transport=http, address=0.0.0.0:${port}`);
