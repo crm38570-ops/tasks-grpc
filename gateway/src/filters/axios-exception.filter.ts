@@ -18,7 +18,9 @@ import { AxiosError } from 'axios';
 
 @Catch(AxiosError)
 export class AxiosExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger('AxiosExceptionFilter');
+  private readonly logger = new Logger('AxiosExceptionFilter', {
+    timestamp: true,
+  });
 
   catch(exception: AxiosError) {
     const context = exception.config?.url ?? 'unknown';

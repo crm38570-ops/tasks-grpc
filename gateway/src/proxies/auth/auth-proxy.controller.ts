@@ -6,7 +6,9 @@ import { AxiosResponse } from 'axios';
 
 @Controller('auth')
 export class AuthProxyController {
-  private readonly logger = new Logger('AuthProxyController');
+  private readonly logger = new Logger('AuthProxyController', {
+    timestamp: true,
+  });
   private readonly authServiceUrl: string;
 
   constructor(
