@@ -1,11 +1,14 @@
 services:
   postgres:
+    ports:
+      - "${DB_PORT}:5432"
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${TASKS_DB_DATABASE}
+      AUTH_DB_DATABASE: ${AUTH_DB_DATABASE}
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
