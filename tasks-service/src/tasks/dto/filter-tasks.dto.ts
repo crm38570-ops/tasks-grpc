@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskStatus } from '../enums/task-status.enum';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class GetTasksFilterDto {
   @ApiProperty({
@@ -13,10 +13,11 @@ export class GetTasksFilterDto {
   @IsEnum(TaskStatus)
   status?: TaskStatus;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'капибары',
-    description: 'Ищет совпадения по title или desription задачи',
+    description: 'Ищет совпадения по title или description задачи',
   })
   @IsOptional()
+  @IsString()
   searchQuery?: string;
 }

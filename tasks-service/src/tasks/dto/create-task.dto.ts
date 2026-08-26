@@ -13,7 +13,7 @@ export class CreateTaskDto {
   @ApiProperty({
     example:
       'Основная тема - "Капибары, почему все мы их так любим?". Использовать ChatGPT 5.6 Sol для максимального погружения в тему',
-    description: 'Заголовок задачи',
+    description: 'Описание задачи',
   })
   @IsNotEmpty()
   @IsString()
