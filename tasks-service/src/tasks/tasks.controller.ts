@@ -32,7 +32,7 @@ import { GetUserId } from '../decorators/get-user-id.decorator';
 @ApiBearerAuth()
 @Controller('tasks')
 export class TasksController {
-  private logger = new Logger(`TaskController`);
+  private readonly logger = new Logger('TasksController', { timestamp: true });
 
   constructor(private tasksService: TasksService) {}
 
