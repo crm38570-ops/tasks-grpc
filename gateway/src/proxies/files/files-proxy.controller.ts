@@ -16,7 +16,18 @@ import { AxiosResponse } from 'axios';
 import type { Readable } from 'node:stream';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiParam,
+  ApiProduces,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Files')
+@ApiBearerAuth()
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
@@ -32,6 +43,12 @@ export class FilesProxyController {
     this.tasksServiceUrl = config.getOrThrow('TASKS_SERVICE_URL');
   }
 
+  @ApiOperation({ summary: 'Загрузка файла' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Файл загружен' })
+  @ApiResponse({ status: 400, description: 'Некорректные данные файла' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Задача не найдена' })
   @Post('upload')
   uploadFile(@Req() request: AuthedRequest) {
     this.logger.verbose(`Upload file request: userId=${request.user.userId}`);
@@ -46,6 +63,10 @@ export class FilesProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Получение списка файлов задачи' })
+  @ApiResponse({ status: 200, description: 'Список файлов задачи' })
+  @ApiResponse({ status: 400, description: 'Некорректный taskId' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
   getListFiles(@Req() request: AuthedRequest) {
     this.logger.verbose(`List files request: userId=${request.user.userId}`);
@@ -58,6 +79,26 @@ export class FilesProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Скачивание файла' })
+  @ApiProduces('application/octet-stream')
+  @ApiParam({
+    name: 'fileId',
+    type: String,
+    format: 'uuid',
+    description: 'UUID файла',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Бинарное содержимое файла',
+    content: {
+      'application/octet-stream': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Некорректный fileId' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Файл не найден' })
   @Get(':fileId')
   async downloadFile(
     @Param('fileId') fileId: string,
@@ -82,6 +123,17 @@ export class FilesProxyController {
     });
   }
 
+  @ApiOperation({ summary: 'Удаление файла' })
+  @ApiParam({
+    name: 'fileId',
+    type: String,
+    format: 'uuid',
+    description: 'UUID файла',
+  })
+  @ApiResponse({ status: 200, description: 'Файл удалён' })
+  @ApiResponse({ status: 400, description: 'Некорректный fileId' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Файл не найден' })
   @Delete(':fileId')
   deleteFile(@Param('fileId') fileId: string, @Req() request: AuthedRequest) {
     this.logger.verbose(

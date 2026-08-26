@@ -16,7 +16,16 @@ import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Tasks')
+@ApiBearerAuth()
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksProxyController {
@@ -32,6 +41,10 @@ export class TasksProxyController {
     this.tasksServiceUrl = config.getOrThrow('TASKS_SERVICE_URL');
   }
 
+  @ApiOperation({ summary: 'Создание задачи' })
+  @ApiResponse({ status: 201, description: 'Задача создана' })
+  @ApiResponse({ status: 400, description: 'Некорректные данные задачи' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Post()
   createTask(@Body() body: unknown, @Req() request: AuthedRequest) {
     this.logger.verbose(`Create task request: userId=${request.user.userId}`);
@@ -44,6 +57,9 @@ export class TasksProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Получение всех задач' })
+  @ApiResponse({ status: 200, description: 'Список задач' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
   getTasks(@Req() request: AuthedRequest) {
     this.logger.verbose(`List tasks request: userId=${request.user.userId}`);
@@ -56,6 +72,17 @@ export class TasksProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Получение задачи по ID' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'UUID задачи',
+  })
+  @ApiResponse({ status: 200, description: 'Задача найдена' })
+  @ApiResponse({ status: 400, description: 'Некорректный UUID задачи' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Задача не найдена' })
   @Get(':id')
   getTask(@Param('id') id: string, @Req() request: AuthedRequest) {
     this.logger.verbose(
@@ -70,6 +97,17 @@ export class TasksProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Удаление задачи по ID' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'UUID задачи',
+  })
+  @ApiResponse({ status: 200, description: 'Задача удалена' })
+  @ApiResponse({ status: 400, description: 'Некорректный UUID задачи' })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Задача не найдена' })
   @Delete(':id')
   deleteTask(@Param('id') id: string, @Req() request: AuthedRequest) {
     this.logger.verbose(
@@ -84,6 +122,20 @@ export class TasksProxyController {
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
+  @ApiOperation({ summary: 'Обновление статуса задачи' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'UUID задачи',
+  })
+  @ApiResponse({ status: 200, description: 'Статус обновлён' })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректный UUID задачи или status',
+  })
+  @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
+  @ApiResponse({ status: 404, description: 'Задача не найдена' })
   @Patch(':id/status')
   updateTaskStatus(
     @Param('id') id: string,

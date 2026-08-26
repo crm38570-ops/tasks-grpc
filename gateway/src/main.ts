@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
+import { SwaggerModule } from '@nestjs/swagger';
+import { config } from './swagger-config';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
@@ -9,6 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({ origin: true });
+
+  const document = SwaggerModule.createDocument(app, config);
+  if (process.env.STAGE !== 'prod') SwaggerModule.setup('api', app, document);
 
   await app.listen(port);
   logger.log(`Application started: transport=http, address=0.0.0.0:${port}`);
