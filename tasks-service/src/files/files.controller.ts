@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
   Query,
@@ -49,6 +50,8 @@ import { tmpdir } from 'node:os';
 @ApiBearerAuth()
 @Controller('files')
 export class FilesController {
+  private readonly logger = new Logger('FilesController');
+
   constructor(private readonly filesService: FilesService) {}
 
   @ApiOperation({
@@ -92,6 +95,10 @@ export class FilesController {
     const { path, originalname, mimetype, size } = file;
     const { taskId } = uploadFileDto;
 
+    this.logger.verbose(
+      `User "${userId}" uploading file for task "${taskId}". File: name=${originalname}, mimeType=${mimetype}, size=${size}`,
+    );
+
     try {
       return await this.filesService.uploadFile(
         {
@@ -128,6 +135,9 @@ export class FilesController {
     @Query() listFilesRequest: ListFilesReqDto,
     @GetUserId() userId: string,
   ): Promise<ListFilesResponse> {
+    this.logger.verbose(
+      `User "${userId}" retrieving files for task "${listFilesRequest.taskId}"`,
+    );
     return this.filesService.listFiles(listFilesRequest, userId);
   }
 
@@ -165,6 +175,9 @@ export class FilesController {
   ): Promise<StreamableFile> {
     const downloadFileReqDto: DownloadFileReqDto = { fileId, taskId };
 
+    this.logger.verbose(
+      `User "${userId}" downloading file "${fileId}" from task "${taskId}"`,
+    );
     return this.filesService.downloadFile(downloadFileReqDto, userId, req);
   }
 
@@ -192,6 +205,9 @@ export class FilesController {
   ): Promise<DeleteFileResponse> {
     const deleteFileReqDto: DeleteFileReqDto = { fileId, taskId };
 
+    this.logger.verbose(
+      `User "${userId}" deleting file "${fileId}" from task "${taskId}"`,
+    );
     return this.filesService.deleteFile(deleteFileReqDto, userId);
   }
 }
