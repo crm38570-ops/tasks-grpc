@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { DeleteResult } from 'typeorm';
 import { CreateTaskDto, DeleteTaskDto, GetTasksFilterDto } from './dto';
 import { TasksRepository } from './tasks.repository';
 import { Task } from './task.entity';
@@ -41,12 +42,24 @@ export class TasksService {
 
   async deleteTaskById({ id }: DeleteTaskDto, userId: string): Promise<void> {
     this.logger.log(`Deleting task "${id}" for user "${userId}"`);
-    const result = await this.tasksRepository.delete({ id, userId });
+
+    let result: DeleteResult;
+    try {
+      result = await this.tasksRepository.delete({ id, userId });
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete task "${id}" for user "${userId}"`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
 
     if (!result.affected) {
       this.logger.warn(`Task "${id}" not found for deletion`);
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
+
+    this.logger.log(`Task "${id}" deleted for user "${userId}"`);
   }
 
   async updateTaskStatus(
