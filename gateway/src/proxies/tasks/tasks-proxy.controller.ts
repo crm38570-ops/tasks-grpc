@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -19,6 +20,7 @@ import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksProxyController {
+  private readonly logger = new Logger('TasksProxyController');
   private readonly tasksServiceUrl: string;
 
   constructor(
@@ -30,6 +32,7 @@ export class TasksProxyController {
 
   @Post()
   createTask(@Body() body: unknown, @Req() request: AuthedRequest) {
+    this.logger.verbose(`Create task request: userId=${request.user.userId}`);
     return this.http
       .post(`${this.tasksServiceUrl}/tasks`, body, {
         headers: {
@@ -41,6 +44,7 @@ export class TasksProxyController {
 
   @Get()
   getTasks(@Req() request: AuthedRequest) {
+    this.logger.verbose(`List tasks request: userId=${request.user.userId}`);
     return this.http
       .get(`${this.tasksServiceUrl}/tasks`, {
         headers: {
@@ -52,6 +56,9 @@ export class TasksProxyController {
 
   @Get(':id')
   getTask(@Param('id') id: string, @Req() request: AuthedRequest) {
+    this.logger.verbose(
+      `Get task request: taskId=${id}, userId=${request.user.userId}`,
+    );
     return this.http
       .get(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
@@ -63,6 +70,9 @@ export class TasksProxyController {
 
   @Delete(':id')
   deleteTask(@Param('id') id: string, @Req() request: AuthedRequest) {
+    this.logger.verbose(
+      `Delete task request: taskId=${id}, userId=${request.user.userId}`,
+    );
     return this.http
       .delete(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
@@ -78,6 +88,9 @@ export class TasksProxyController {
     @Body() body: unknown,
     @Req() request: AuthedRequest,
   ) {
+    this.logger.verbose(
+      `Update task status request: taskId=${id}, userId=${request.user.userId}`,
+    );
     return this.http
       .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body, {
         headers: {

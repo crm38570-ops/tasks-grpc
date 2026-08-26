@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   StreamableFile,
+  Logger,
   UseGuards,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -19,6 +20,7 @@ import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
+  private readonly logger = new Logger('FilesProxyController');
   private readonly tasksServiceUrl: string;
 
   constructor(
@@ -30,6 +32,7 @@ export class FilesProxyController {
 
   @Post('upload')
   uploadFile(@Req() request: AuthedRequest) {
+    this.logger.verbose(`Upload file request: userId=${request.user.userId}`);
     return this.http
       .post(`${this.tasksServiceUrl}/files/upload`, request, {
         headers: {
@@ -43,6 +46,7 @@ export class FilesProxyController {
 
   @Get()
   getListFiles(@Req() request: AuthedRequest) {
+    this.logger.verbose(`List files request: userId=${request.user.userId}`);
     return this.http
       .get(`${this.tasksServiceUrl}/files`, {
         headers: {
@@ -57,6 +61,9 @@ export class FilesProxyController {
     @Param('fileId') fileId: string,
     @Req() request: AuthedRequest,
   ): Promise<StreamableFile> {
+    this.logger.verbose(
+      `Download file request: fileId=${fileId}, userId=${request.user.userId}`,
+    );
     const response = await firstValueFrom(
       this.http.get(`${this.tasksServiceUrl}/files/${fileId}`, {
         headers: {
@@ -68,12 +75,16 @@ export class FilesProxyController {
 
     return new StreamableFile(response.data as Readable, {
       type: response.headers['content-type'] as string | undefined,
-      disposition: response.headers['content-disposition'] as string | undefined,
+      disposition: response.headers['content-disposition'] as
+        string | undefined,
     });
   }
 
   @Delete(':fileId')
   deleteFile(@Param('fileId') fileId: string, @Req() request: AuthedRequest) {
+    this.logger.verbose(
+      `Delete file request: fileId=${fileId}, userId=${request.user.userId}`,
+    );
     return this.http
       .delete(`${this.tasksServiceUrl}/files/${fileId}`, {
         headers: {
