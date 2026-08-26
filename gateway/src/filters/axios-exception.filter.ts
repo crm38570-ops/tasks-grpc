@@ -8,6 +8,7 @@ import {
   GatewayTimeoutException,
   HttpException,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -17,7 +18,18 @@ import { AxiosError } from 'axios';
 
 @Catch(AxiosError)
 export class AxiosExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger('AxiosExceptionFilter');
+
   catch(exception: AxiosError) {
+    const context = exception.config?.url ?? 'unknown';
+    const details = exception.response
+      ? `status=${exception.response.status}`
+      : `code=${exception.code ?? 'unknown'}`;
+    this.logger.error(
+      `Upstream request failed: ${context}, ${details}`,
+      exception.stack,
+    );
+
     if (exception.response) {
       const { status } = exception.response;
 
