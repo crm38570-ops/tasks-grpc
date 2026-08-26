@@ -16,7 +16,7 @@ import { RpcValidationPipe } from '../pipes/validation.pipe';
 @Controller()
 @UsePipes(RpcValidationPipe)
 export class FilesController {
-  private logger = new Logger('FilesController', { timestamp: true });
+  private readonly logger = new Logger('FilesController', { timestamp: true });
 
   constructor(private readonly filesService: FilesService) {
     // логгер понадобится для exception-filter; заглушка для noUnusedLocals

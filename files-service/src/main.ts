@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  const logger = new Logger();
+  const logger = new Logger('Bootstrap', { timestamp: true });
 
   const port = Number(process.env.GRPC_PORT ?? 50051);
 
@@ -26,9 +26,12 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   await app.listen();
-  logger.log(`App listening on port ${port}`);
+  logger.log(`Application started: transport=grpc, address=0.0.0.0:${port}`);
 }
-bootstrap().catch((err) => {
-  console.error(err);
+bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  const logger = new Logger('Bootstrap', { timestamp: true });
+  logger.error(`Application failed to start: ${message}`, stack);
   process.exit(1);
 });
