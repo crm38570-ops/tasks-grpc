@@ -53,7 +53,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
     ports:
-      - "${TASKS_PORT}:3000"
+      - "${TASKS_PORT}:${TASKS_PORT}"
     depends_on:
       postgres:
         condition: service_healthy
