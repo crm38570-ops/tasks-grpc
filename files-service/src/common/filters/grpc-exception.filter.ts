@@ -14,7 +14,12 @@ export class GrpcExceptionFilter implements ExceptionFilter {
 
     void _host;
 
-    // Здесь нужно доделать логирование
+    const error =
+      exception instanceof Error ? exception : new Error(String(exception));
+    this.logger.error(
+      `Необработанное исключение в gRPC: ${error.message}`,
+      error.stack,
+    );
     throw new RpcException({
       code: status.INTERNAL,
       message: 'Внутренняя ошибка сервера',

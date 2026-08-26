@@ -49,10 +49,9 @@ export class FilesService {
     const writeStream = createWriteStream(filePath);
 
     let totalBytes = 0;
+    let firstMessage: UploadFileRequestDto | undefined;
 
     try {
-      let firstMessage: UploadFileRequestDto | undefined;
-
       for await (const message of eachValueFrom(uploadFileRequest$)) {
         if (!firstMessage) {
           validateUploadFileRequest(message);
@@ -87,6 +86,10 @@ export class FilesService {
 
       return { fileId };
     } catch (err) {
+      const metadata = firstMessage?.metadata;
+      this.logger.error(
+        `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${(err as Error).stack}`,
+      );
       writeStream.destroy();
       await fs.promises.unlink(filePath).catch(() => undefined);
       throw err;
