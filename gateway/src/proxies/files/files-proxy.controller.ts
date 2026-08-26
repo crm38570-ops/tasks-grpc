@@ -20,7 +20,9 @@ import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
-  private readonly logger = new Logger('FilesProxyController');
+  private readonly logger = new Logger('FilesProxyController', {
+    timestamp: true,
+  });
   private readonly tasksServiceUrl: string;
 
   constructor(

@@ -20,7 +20,9 @@ import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 @Controller('tasks')
 @UseGuards(JwtAuthGuard)
 export class TasksProxyController {
-  private readonly logger = new Logger('TasksProxyController');
+  private readonly logger = new Logger('TasksProxyController', {
+    timestamp: true,
+  });
   private readonly tasksServiceUrl: string;
 
   constructor(
