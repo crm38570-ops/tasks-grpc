@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersRepository extends Repository<User> {
-  private logger = new Logger(`UsersRepository`, { timestamp: true });
+  private readonly logger = new Logger('UsersRepository', { timestamp: true });
 
   constructor(private dataSource: DataSource) {
     super(User, dataSource.createEntityManager());
@@ -32,7 +32,7 @@ export class UsersRepository extends Repository<User> {
     } catch (error: unknown) {
       this.logger.error(
         `Failed to create user "${username}"`,
-        (error as Error).stack,
+        error instanceof Error ? error.stack : String(error),
       );
 
       if (error instanceof QueryFailedError) {

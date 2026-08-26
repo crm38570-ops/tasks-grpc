@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiConsumes,
   ApiOperation,
   ApiParam,
@@ -45,6 +46,24 @@ export class FilesProxyController {
 
   @ApiOperation({ summary: 'Загрузка файла' })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'taskId'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Загружаемый файл',
+        },
+        taskId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'UUID задачи',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'Файл загружен' })
   @ApiResponse({ status: 400, description: 'Некорректные данные файла' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })

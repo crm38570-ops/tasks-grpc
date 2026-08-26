@@ -1,35 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
-import fs from 'node:fs';
+import fs, { createWriteStream } from 'node:fs';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
   ListFilesRequest,
-} from './proto/files/generated/files_service';
+  UploadFileResponse,
+} from '../proto/files/generated/files_service';
 import { join } from 'node:path';
-import {
-  catchError,
-  concat,
-  defer,
-  from,
-  lastValueFrom,
-  map,
-  Observable,
-  of,
-  toArray,
-} from 'rxjs';
+import { catchError, concat, defer, from, map, Observable, of } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
 import { validateFileId } from './services/validate.file-id';
 import { validateFileUser } from './services/validate.file-user';
-import { UploadFileRequestDto } from './dto/upload-file.request.dto';
+import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { validateUploadFileRequest } from './services/validate.upload-file.request';
+import { randomUUID } from 'node:crypto';
+import { once } from 'node:events';
+import { eachValueFrom } from 'rxjs-for-await';
 
 @Injectable()
 export class FilesService {
-  private logger = new Logger('FilesService', { timestamp: true });
+  private readonly logger = new Logger('FilesService', { timestamp: true });
   private FILE_DIR: string;
 
   constructor(private readonly filesRepository: FilesRepository) {
@@ -40,49 +34,66 @@ export class FilesService {
     try {
       await fs.promises.mkdir(this.FILE_DIR, { recursive: true });
     } catch (err) {
+      const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Не удалось создать директорию ${this.FILE_DIR}: ${(err as Error).stack}`,
+        `Не удалось создать директорию ${this.FILE_DIR}: ${stack}`,
       );
       throw err;
     }
   }
 
-  async saveFile(uploadFileRequest$: Observable<UploadFileRequestDto>) {
-    const chunks = await lastValueFrom(uploadFileRequest$.pipe(toArray()));
+  async saveFile(
+    uploadFileRequest$: Observable<UploadFileRequestDto>,
+  ): Promise<UploadFileResponse> {
+    const fileId = randomUUID();
+    const filePath = join(this.FILE_DIR, fileId);
+    const writeStream = createWriteStream(filePath);
 
-    if (!chunks.length) {
-      throw new RpcException({
-        code: status.INVALID_ARGUMENT,
-        message: 'Пустой поток',
-      });
-    }
-
-    const [first] = chunks;
-
-    validateUploadFileRequest(first);
-
-    const content = Buffer.concat(chunks.map((chunk) => chunk.content));
-
-    validateUploadFileContent(content);
-
-    const { metadata } = first;
+    let totalBytes = 0;
+    let firstMessage: UploadFileRequestDto | undefined;
 
     try {
-      const { fileId } = await this.filesRepository.saveFile(metadata);
+      for await (const message of eachValueFrom(uploadFileRequest$)) {
+        if (!firstMessage) {
+          validateUploadFileRequest(message);
+          firstMessage = message;
+        }
 
-      await fs.promises.writeFile(
-        join(this.FILE_DIR, fileId),
-        Buffer.from(content),
+        totalBytes += message.content.length;
+
+        if (!writeStream.write(message.content)) {
+          await once(writeStream, 'drain');
+        }
+      }
+
+      if (!firstMessage) {
+        throw new RpcException({
+          code: status.INVALID_ARGUMENT,
+          message: 'Пустой поток',
+        });
+      }
+
+      validateUploadFileContent(totalBytes, firstMessage.metadata.size);
+
+      await new Promise<void>((res, rej) =>
+        writeStream.end((err?: Error | null) => (err ? rej(err) : res())),
       );
+
+      const { metadata } = firstMessage;
+
+      await this.filesRepository.saveFile({ fileId, ...metadata });
 
       this.logger.log(`Файл с id ${fileId} успешно сохранён.`);
 
       return { fileId };
     } catch (err) {
+      const metadata = firstMessage?.metadata;
+      const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Не удалось сохранить файл: ${(err as RpcException).stack}`,
+        `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${stack}`,
       );
-
+      writeStream.destroy();
+      await fs.promises.unlink(filePath).catch(() => undefined);
       throw err;
     }
   }
@@ -124,6 +135,10 @@ export class FilesService {
 
       validateFileUser({ file, userId });
 
+      await fs.promises.unlink(join(this.FILE_DIR, fileId)).catch((err) => {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      });
+
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 
       if (!result.affected) {
@@ -133,8 +148,6 @@ export class FilesService {
 
         throw new RpcException({ code: status.NOT_FOUND, message });
       }
-
-      await fs.promises.unlink(join(this.FILE_DIR, fileId));
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
@@ -158,9 +171,8 @@ export class FilesService {
       file =
         await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
     } catch (err) {
-      this.logger.error(
-        `Ошибка при проверке доступа к файлу: ${(err as Error).stack}`,
-      );
+      const stack = err instanceof Error ? err.stack : String(err);
+      this.logger.error(`Ошибка при проверке доступа к файлу: ${stack}`);
       throw err;
     }
 
@@ -189,9 +201,8 @@ export class FilesService {
         from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
           map((chunk: Buffer) => ({ chunk, metadata: undefined })),
           catchError((err) => {
-            this.logger.error(
-              `Ошибка чтения файла ${fileId}: ${(err as Error).stack}`,
-            );
+            const stack = err instanceof Error ? err.stack : String(err);
+            this.logger.error(`Ошибка чтения файла ${fileId}: ${stack}`);
             if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
               throw new RpcException({
                 code: status.NOT_FOUND,

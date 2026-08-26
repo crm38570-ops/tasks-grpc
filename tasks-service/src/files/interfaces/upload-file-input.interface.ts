@@ -1,5 +1,7 @@
+import type { Readable } from 'node:stream';
+
 export interface UploadFileInputInterface {
-  content: Uint8Array;
+  content: Readable;
   metadata: {
     fileName: string;
     mimeType: string;
