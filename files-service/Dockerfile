@@ -28,4 +28,4 @@ USER node
 
 EXPOSE 50051
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "yarn typeorm:run:prod && node dist/main.js"]

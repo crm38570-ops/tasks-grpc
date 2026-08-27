@@ -256,21 +256,11 @@ describe('FilesService', () => {
     expect(result).toEqual({ files: [file] });
   });
 
-  it(`getListFiles возвращает RpcException с кодом 5, если для задачи нет файлов`, async () => {
+  it('getListFiles возвращает пустой список, если для задачи нет файлов', async () => {
     mockRepo.getListFiles.mockResolvedValue([] as FileMetadataResponse[]);
 
-    let caughtError: unknown;
-
-    try {
-      await service.getListFiles(mockTaskUserId);
-    } catch (err: unknown) {
-      caughtError = err;
-    }
-
-    expect(caughtError).toBeInstanceOf(RpcException);
-    expect((caughtError as RpcException).getError()).toEqual({
-      code: 5,
-      message: `Для данной задачи нет подходящих файлов`,
+    await expect(service.getListFiles(mockTaskUserId)).resolves.toEqual({
+      files: [],
     });
 
     expect(mockRepo.getListFiles).toHaveBeenCalledWith(mockTaskUserId);

@@ -13,7 +13,7 @@ import { catchError, concat, defer, from, map, Observable, of } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
-import { validateFileId } from './services/validate.file-id';
+import { validateFileName } from './services/validate.file-name';
 import { validateFileUser } from './services/validate.file-user';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { validateUploadFileRequest } from './services/validate.upload-file.request';
@@ -56,6 +56,7 @@ export class FilesService {
       for await (const message of eachValueFrom(uploadFileRequest$)) {
         if (!firstMessage) {
           validateUploadFileRequest(message);
+          validateFileName(message.metadata.fileName, this.logger);
           firstMessage = message;
         }
 
@@ -104,17 +105,6 @@ export class FilesService {
     try {
       const files = await this.filesRepository.getListFiles(listFilesRequest);
 
-      if (!files.length) {
-        const message = 'Для данной задачи нет подходящих файлов';
-
-        this.logger.error(`${message}: taskId=${taskId}`);
-
-        throw new RpcException({
-          code: status.NOT_FOUND,
-          message,
-        });
-      }
-
       return { files };
     } catch (err) {
       this.logger.error(
@@ -129,8 +119,6 @@ export class FilesService {
     const { fileId, userId } = deleteFileRequest;
 
     try {
-      validateFileId(fileId, this.logger);
-
       const file = await this.filesRepository.getFile(fileId);
 
       validateFileUser({ file, userId });
@@ -167,7 +155,6 @@ export class FilesService {
     let file: FileEntity | null;
 
     try {
-      validateFileId(fileId, this.logger);
       file =
         await this.filesRepository.downloadFileVerifyUser(downloadFileRequest);
     } catch (err) {

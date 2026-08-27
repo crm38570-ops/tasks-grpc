@@ -18,7 +18,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "proto:gen": "node scripts/generate-protos.js"
+    "proto:gen": "node scripts/generate-protos.js",
+    "typeorm": "ts-node --project tsconfig.typeorm.json node_modules/typeorm/cli.js -d src/database/data-source.ts",
+    "typeorm:show": "yarn typeorm migration:show",
+    "typeorm:generate": "yarn typeorm migration:generate",
+    "typeorm:run": "yarn typeorm migration:run",
+    "typeorm:revert": "yarn typeorm migration:revert",
+    "typeorm:prod": "node node_modules/typeorm/cli.js -d dist/database/data-source.js",
+    "typeorm:run:prod": "yarn typeorm:prod migration:run"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.13.0",
@@ -33,6 +40,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

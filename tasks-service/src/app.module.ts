@@ -1,15 +1,27 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
 import { TasksModule } from './tasks/tasks.module';
 import { FilesModule } from './files/files.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: `.env.stage.${process.env.STAGE}`,
       validationSchema: configValidationSchema,
+    }),
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow('JWT_SECRET'),
+      }),
     }),
     TasksModule,
     FilesModule,
@@ -28,7 +40,7 @@ import { configValidationSchema } from './config.chema';
       }),
     }),
   ],
-  controllers: [],
-  providers: [],
+  controllers: [HealthController],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}
