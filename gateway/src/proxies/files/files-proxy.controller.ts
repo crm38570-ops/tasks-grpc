@@ -7,16 +7,11 @@ import {
   Query,
   Req,
   StreamableFile,
-  Logger,
   UseGuards,
 } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom, map } from 'rxjs';
-import { AxiosResponse } from 'axios';
-import type { Readable } from 'node:stream';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
+import { FilesProxyService } from './files-proxy.service';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -34,17 +29,7 @@ import {
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
-  private readonly logger = new Logger('FilesProxyController', {
-    timestamp: true,
-  });
-  private readonly tasksServiceUrl: string;
-
-  constructor(
-    private readonly http: HttpService,
-    config: ConfigService,
-  ) {
-    this.tasksServiceUrl = config.getOrThrow('TASKS_SERVICE_URL');
-  }
+  constructor(private readonly filesProxyService: FilesProxyService) {}
 
   @ApiOperation({ summary: 'Загрузка файла' })
   @ApiConsumes('multipart/form-data')
@@ -72,16 +57,7 @@ export class FilesProxyController {
   @ApiResponse({ status: 404, description: 'Задача не найдена' })
   @Post('upload')
   uploadFile(@Req() request: AuthedRequest) {
-    this.logger.verbose(`Upload file request: userId=${request.user.userId}`);
-    return this.http
-      .post(`${this.tasksServiceUrl}/files/upload`, request, {
-        headers: {
-          Authorization: request.headers.authorization,
-          'content-type': request.headers['content-type'],
-          'content-length': request.headers['content-length'],
-        },
-      })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+    return this.filesProxyService.uploadFile(request);
   }
 
   @ApiOperation({ summary: 'Получение списка файлов задачи' })
@@ -91,15 +67,7 @@ export class FilesProxyController {
   @ApiQuery({ name: 'taskId', required: true, format: 'uuid' })
   @Get()
   getListFiles(@Query('taskId') taskId: string, @Req() request: AuthedRequest) {
-    this.logger.verbose(`List files request: userId=${request.user.userId}`);
-    return this.http
-      .get(`${this.tasksServiceUrl}/files`, {
-        params: { taskId },
-        headers: {
-          Authorization: request.headers.authorization,
-        },
-      })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+    return this.filesProxyService.getListFiles(taskId, request);
   }
 
   @ApiOperation({ summary: 'Скачивание файла' })
@@ -129,24 +97,7 @@ export class FilesProxyController {
     @Query('taskId') taskId: string,
     @Req() request: AuthedRequest,
   ): Promise<StreamableFile> {
-    this.logger.verbose(
-      `Download file request: fileId=${fileId}, userId=${request.user.userId}`,
-    );
-    const response = await firstValueFrom(
-      this.http.get(`${this.tasksServiceUrl}/files/${fileId}`, {
-        params: { taskId },
-        headers: {
-          Authorization: request.headers.authorization,
-        },
-        responseType: 'stream',
-      }),
-    );
-
-    return new StreamableFile(response.data as Readable, {
-      type: response.headers['content-type'] as string | undefined,
-      disposition: response.headers['content-disposition'] as
-        string | undefined,
-    });
+    return this.filesProxyService.downloadFile(fileId, taskId, request);
   }
 
   @ApiOperation({ summary: 'Удаление файла' })
@@ -167,16 +118,6 @@ export class FilesProxyController {
     @Query('taskId') taskId: string,
     @Req() request: AuthedRequest,
   ) {
-    this.logger.verbose(
-      `Delete file request: fileId=${fileId}, userId=${request.user.userId}`,
-    );
-    return this.http
-      .delete(`${this.tasksServiceUrl}/files/${fileId}`, {
-        params: { taskId },
-        headers: {
-          Authorization: request.headers.authorization,
-        },
-      })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+    return this.filesProxyService.deleteFile(fileId, taskId, request);
   }
 }
