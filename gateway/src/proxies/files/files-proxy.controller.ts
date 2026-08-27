@@ -76,7 +76,7 @@ export class FilesProxyController {
     return this.http
       .post(`${this.tasksServiceUrl}/files/upload`, request, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
           'content-type': request.headers['content-type'],
           'content-length': request.headers['content-length'],
         },
@@ -90,16 +90,13 @@ export class FilesProxyController {
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @ApiQuery({ name: 'taskId', required: true, format: 'uuid' })
   @Get()
-  getListFiles(
-    @Query('taskId') taskId: string,
-    @Req() request: AuthedRequest,
-  ) {
+  getListFiles(@Query('taskId') taskId: string, @Req() request: AuthedRequest) {
     this.logger.verbose(`List files request: userId=${request.user.userId}`);
     return this.http
       .get(`${this.tasksServiceUrl}/files`, {
         params: { taskId },
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -139,7 +136,7 @@ export class FilesProxyController {
       this.http.get(`${this.tasksServiceUrl}/files/${fileId}`, {
         params: { taskId },
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
         responseType: 'stream',
       }),
@@ -177,7 +174,7 @@ export class FilesProxyController {
       .delete(`${this.tasksServiceUrl}/files/${fileId}`, {
         params: { taskId },
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));

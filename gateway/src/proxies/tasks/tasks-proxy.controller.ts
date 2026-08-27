@@ -53,7 +53,7 @@ export class TasksProxyController {
     return this.http
       .post(`${this.tasksServiceUrl}/tasks`, body, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -77,7 +77,7 @@ export class TasksProxyController {
           searchQuery: query.searchQuery,
         },
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -102,7 +102,7 @@ export class TasksProxyController {
     return this.http
       .get(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -127,7 +127,7 @@ export class TasksProxyController {
     return this.http
       .delete(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -159,7 +159,7 @@ export class TasksProxyController {
     return this.http
       .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
