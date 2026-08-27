@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -44,6 +45,24 @@ export class TasksProxyController {
   }
 
   @ApiOperation({ summary: 'Создание задачи' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['title', 'description'],
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Название задачи',
+          example: 'Подготовить документацию',
+        },
+        description: {
+          type: 'string',
+          description: 'Описание задачи',
+          example: 'Добавить примеры запросов в Swagger',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'Задача создана' })
   @ApiResponse({ status: 400, description: 'Некорректные данные задачи' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
@@ -60,8 +79,18 @@ export class TasksProxyController {
   }
 
   @ApiOperation({ summary: 'Получение всех задач' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'searchQuery', required: false })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['OPEN', 'IN_PROGRESS', 'DONE'],
+    description: 'Статус задачи',
+  })
+  @ApiQuery({
+    name: 'searchQuery',
+    required: false,
+    type: String,
+    description: 'Поиск по задачам',
+  })
   @ApiResponse({ status: 200, description: 'Список задач' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
@@ -134,6 +163,20 @@ export class TasksProxyController {
   }
 
   @ApiOperation({ summary: 'Обновление статуса задачи' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['status'],
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['OPEN', 'IN_PROGRESS', 'DONE'],
+          description: 'Новый статус задачи',
+          example: 'IN_PROGRESS',
+        },
+      },
+    },
+  })
   @ApiParam({
     name: 'id',
     type: String,
