@@ -32,11 +32,21 @@ services:
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_DATABASE: ${AUTH_DB_DATABASE}
+      LEGACY_DB_HOST: postgres
+      LEGACY_DB_PORT: 5432
+      LEGACY_DB_USERNAME: ${POSTGRES_USER}
+      LEGACY_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      LEGACY_DB_DATABASE: ${TASKS_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get('http://127.0.0.1:3001/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   gateway:
     build:
@@ -55,9 +65,14 @@ services:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
       auth-service:
-        condition: service_started
+        condition: service_healthy
       tasks-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get('http://127.0.0.1:3000/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   files-service:
     build:
@@ -78,6 +93,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:net').connect(50051, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   tasks-service:
     build:
@@ -99,7 +119,12 @@ services:
       postgres:
         condition: service_healthy
       files-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:http').get('http://127.0.0.1:3002/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres-data:
