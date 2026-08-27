@@ -30,9 +30,5 @@ export class RemoveTaskUserForeignKey1788000000000 implements MigrationInterface
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "task" ADD CONSTRAINT "FK_task_user_id" FOREIGN KEY ("userId") REFERENCES "user"("id")`,
-    );
-  }
+  public async down(): Promise<void> {}
 }
