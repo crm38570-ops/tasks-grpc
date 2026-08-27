@@ -1,6 +1,6 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { map } from 'rxjs';
 import { AxiosResponse } from 'axios';
@@ -21,6 +21,28 @@ export class AuthProxyController {
   }
 
   @ApiOperation({ summary: 'Регистрация пользователя' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['username', 'password'],
+      properties: {
+        username: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 40,
+          description: 'Имя пользователя',
+          example: 'Alice',
+        },
+        password: {
+          type: 'string',
+          minLength: 8,
+          maxLength: 40,
+          description: 'Пароль',
+          example: 'Secret123!',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: 'Пользователь зарегистрирован' })
   @ApiResponse({ status: 400, description: 'Некорректные данные регистрации' })
   @Post('signup')
@@ -32,6 +54,28 @@ export class AuthProxyController {
   }
 
   @ApiOperation({ summary: 'Авторизация пользователя' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['username', 'password'],
+      properties: {
+        username: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 40,
+          description: 'Имя пользователя',
+          example: 'Alice',
+        },
+        password: {
+          type: 'string',
+          minLength: 8,
+          maxLength: 40,
+          description: 'Пароль',
+          example: 'Secret123!',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Пользователь авторизован' })
   @ApiResponse({ status: 400, description: 'Некорректные данные авторизации' })
   @Post('signin')
