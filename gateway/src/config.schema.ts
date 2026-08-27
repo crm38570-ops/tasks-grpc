@@ -7,4 +7,5 @@ export const configValidationSchema = Joi.object({
   TASKS_SERVICE_URL: Joi.string().required(),
 
   JWT_SECRET: Joi.string().required(),
+  CORS_ORIGINS: Joi.string().required(),
 });
