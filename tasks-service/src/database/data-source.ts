@@ -5,7 +5,6 @@ import { Task } from '../tasks/task.entity';
 
 dotenv.config({ path: `.env.stage.${process.env.STAGE || 'dev'}` });
 
->>>>>>> tasks-service/main
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
