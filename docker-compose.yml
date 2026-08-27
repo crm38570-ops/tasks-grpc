@@ -50,6 +50,7 @@ services:
       TASKS_SERVICE_URL: http://tasks-service:${TASKS_PORT}
       FILES_SERVICE_URL: http://tasks-service:${TASKS_PORT}
       JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
