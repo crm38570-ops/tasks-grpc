@@ -6,7 +6,6 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { AxiosResponse } from 'axios';
 import { firstValueFrom, map } from 'rxjs';
 import type { Readable } from 'node:stream';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
@@ -35,7 +34,7 @@ export class FilesProxyService {
 
     this.logger.verbose(`Upload file request: userId=${request.user.userId}`);
     return this.http
-      .post(`${this.tasksServiceUrl}/files/upload`, request, {
+      .post<unknown>(`${this.tasksServiceUrl}/files/upload`, request, {
         headers: {
           Authorization: request.headers.authorization,
           'content-type': request.headers['content-type'],
@@ -43,19 +42,19 @@ export class FilesProxyService {
         },
         maxBodyLength: maxUploadSize,
       })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+      .pipe(map((response) => response.data));
   }
 
   getListFiles(taskId: string, request: AuthedRequest) {
     this.logger.verbose(`List files request: userId=${request.user.userId}`);
     return this.http
-      .get(`${this.tasksServiceUrl}/files`, {
+      .get<unknown>(`${this.tasksServiceUrl}/files`, {
         params: { taskId },
         headers: {
           Authorization: request.headers.authorization,
         },
       })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+      .pipe(map((response) => response.data));
   }
 
   async downloadFile(
@@ -88,12 +87,12 @@ export class FilesProxyService {
       `Delete file request: fileId=${fileId}, userId=${request.user.userId}`,
     );
     return this.http
-      .delete(`${this.tasksServiceUrl}/files/${fileId}`, {
+      .delete<unknown>(`${this.tasksServiceUrl}/files/${fileId}`, {
         params: { taskId },
         headers: {
           Authorization: request.headers.authorization,
         },
       })
-      .pipe(map((response: AxiosResponse<unknown>) => response.data));
+      .pipe(map((response) => response.data));
   }
 }
