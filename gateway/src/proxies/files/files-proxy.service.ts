@@ -1,5 +1,10 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, StreamableFile } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  PayloadTooLargeException,
+  StreamableFile,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AxiosResponse } from 'axios';
 import { firstValueFrom, map } from 'rxjs';
@@ -21,6 +26,13 @@ export class FilesProxyService {
   }
 
   uploadFile(request: AuthedRequest) {
+    const maxUploadSize = 10 * 1024 * 1024;
+    const contentLength = Number(request.headers['content-length']);
+
+    if (Number.isFinite(contentLength) && contentLength > maxUploadSize) {
+      throw new PayloadTooLargeException('File is too large');
+    }
+
     this.logger.verbose(`Upload file request: userId=${request.user.userId}`);
     return this.http
       .post(`${this.tasksServiceUrl}/files/upload`, request, {
@@ -29,6 +41,7 @@ export class FilesProxyService {
           'content-type': request.headers['content-type'],
           'content-length': request.headers['content-length'],
         },
+        maxBodyLength: maxUploadSize,
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
