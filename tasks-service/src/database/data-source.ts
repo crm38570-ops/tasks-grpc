@@ -13,6 +13,6 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_DATABASE ?? 'tasks-service',
   entities: [Task],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: [`${__dirname}/migrations/*{.ts,.js}`],
   migrationsTableName: 'tasks_migrations',
 });
