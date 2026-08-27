@@ -1,7 +1,11 @@
 import 'reflect-metadata';
+import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { Task } from '../tasks/task.entity';
 
+dotenv.config({ path: `.env.stage.${process.env.STAGE || 'dev'}` });
+
+>>>>>>> tasks-service/main
 export default new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -10,6 +14,6 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_DATABASE ?? 'tasks-service',
   entities: [Task],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: [`${__dirname}/migrations/*{.ts,.js}`],
   migrationsTableName: 'tasks_migrations',
 });
