@@ -4,12 +4,13 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { config } from './swagger-config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
   const port = Number(process.env.PORT ?? 3000);
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const corsOrigins = configService
     .getOrThrow<string>('CORS_ORIGINS')
@@ -18,6 +19,15 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.enableCors({ origin: corsOrigins });
+
+  app.useBodyParser('json', {
+    limit: '1mb',
+    extended: true,
+  });
+  app.useBodyParser('urlencoded', {
+    limit: '1mb',
+    extended: true,
+  });
 
   const document = SwaggerModule.createDocument(app, config);
   if (process.env.STAGE !== 'prod') SwaggerModule.setup('api', app, document);
