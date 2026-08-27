@@ -1,5 +1,9 @@
+import 'reflect-metadata';
+import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { User } from '../user/user.entity';
+
+dotenv.config({ path: `.env.stage.${process.env.STAGE || 'dev'}` });
 
 export default new DataSource({
   type: 'postgres',
@@ -9,7 +13,7 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_DATABASE ?? 'auth-service',
   entities: [User],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: [`${__dirname}/migrations/*{.ts,.js}`],
   migrationsTableName: 'auth_migrations',
   synchronize: false,
 });
