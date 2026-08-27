@@ -7,6 +7,7 @@ import { FilesModule } from './files/files.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.chema';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}
