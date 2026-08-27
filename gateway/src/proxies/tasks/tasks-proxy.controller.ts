@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -51,22 +53,31 @@ export class TasksProxyController {
     return this.http
       .post(`${this.tasksServiceUrl}/tasks`, body, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
   }
 
   @ApiOperation({ summary: 'Получение всех задач' })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'searchQuery', required: false })
   @ApiResponse({ status: 200, description: 'Список задач' })
   @ApiResponse({ status: 401, description: 'Пользователь не авторизован' })
   @Get()
-  getTasks(@Req() request: AuthedRequest) {
+  getTasks(
+    @Query() query: { status?: string; searchQuery?: string },
+    @Req() request: AuthedRequest,
+  ) {
     this.logger.verbose(`List tasks request: userId=${request.user.userId}`);
     return this.http
       .get(`${this.tasksServiceUrl}/tasks`, {
+        params: {
+          status: query.status,
+          searchQuery: query.searchQuery,
+        },
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -91,7 +102,7 @@ export class TasksProxyController {
     return this.http
       .get(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -116,7 +127,7 @@ export class TasksProxyController {
     return this.http
       .delete(`${this.tasksServiceUrl}/tasks/${id}`, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
@@ -148,7 +159,7 @@ export class TasksProxyController {
     return this.http
       .patch(`${this.tasksServiceUrl}/tasks/${id}/status`, body, {
         headers: {
-          'X-User-Id': request.user.userId,
+          Authorization: request.headers.authorization,
         },
       })
       .pipe(map((response: AxiosResponse<unknown>) => response.data));
