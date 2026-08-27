@@ -105,17 +105,6 @@ export class FilesService {
     try {
       const files = await this.filesRepository.getListFiles(listFilesRequest);
 
-      if (!files.length) {
-        const message = 'Для данной задачи нет подходящих файлов';
-
-        this.logger.error(`${message}: taskId=${taskId}`);
-
-        throw new RpcException({
-          code: status.NOT_FOUND,
-          message,
-        });
-      }
-
       return { files };
     } catch (err) {
       this.logger.error(
