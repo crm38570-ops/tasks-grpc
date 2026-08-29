@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { configValidationSchema } from './config.schema';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FilesModule } from './files.module';
+import { FilesModule } from './files/files.module';
 import { GrpcExceptionFilter } from './common/filters/grpc-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
 
@@ -19,7 +19,7 @@ import { APP_FILTER } from '@nestjs/core';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: process.env.STAGE === 'dev' ? true : false,
+        synchronize: false,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),

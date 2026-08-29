@@ -3,16 +3,15 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { AuthedRequest } from '../auth/jwt-auth.guard';
 
 export const GetUserId = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): string => {
-    const req = ctx
-      .switchToHttp()
-      .getRequest<{ headers: Record<string, string | undefined> }>();
-    const userId = req.headers['x-user-id'];
+    const request = ctx.switchToHttp().getRequest<AuthedRequest>();
+    const userId = request.user?.userId;
 
     if (!userId) {
-      throw new UnauthorizedException('Missing X-User-Id header');
+      throw new UnauthorizedException('Missing user identity');
     }
 
     return userId;

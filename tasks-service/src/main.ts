@@ -2,12 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { TransformInterceptor } from './interceptors';
-import { SwaggerModule } from '@nestjs/swagger';
-import { config } from './swagger-config';
 
 async function bootstrap() {
-  const logger = new Logger();
-  const PORT = process.env.PORT ?? 3000;
+  const logger = new Logger('Bootstrap', { timestamp: true });
+  const port = process.env.PORT ?? 3002;
 
   const app = await NestFactory.create(AppModule);
 
@@ -16,14 +14,14 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  const document = SwaggerModule.createDocument(app, config);
-
-  if (process.env.STAGE !== 'prod') SwaggerModule.setup('api', app, document);
-
-  await app.listen(PORT);
-  logger.log(`App started on PORT: ${PORT}`);
+  await app.listen(port);
+  logger.log(`Application started: transport=http, address=0.0.0.0:${port}`);
 }
-bootstrap().catch((error) => {
-  console.error(error);
+
+bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  const logger = new Logger('Bootstrap', { timestamp: true });
+  logger.error(`Application failed to start: ${message}`, stack);
   process.exit(1);
 });

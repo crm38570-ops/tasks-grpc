@@ -7,8 +7,8 @@ import {
   afterAll,
   expect,
 } from '@jest/globals';
-import { FilesService } from '../files.service';
-import { FilesRepository } from '../files.repository';
+import { FilesService } from '../files/files.service';
+import { FilesRepository } from '../files/files.repository';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
@@ -17,11 +17,12 @@ import {
   ListFilesRequest,
 } from '../proto/files/generated/files_service';
 import { DeleteResult } from 'typeorm';
-import { FileEntity } from '../file.entity';
+import { FileEntity } from '../files/file.entity';
 import { RpcException } from '@nestjs/microservices';
 import fs from 'node:fs';
-import { Readable } from 'node:stream';
-import { lastValueFrom } from 'rxjs';
+import { Readable, Writable } from 'node:stream';
+import { lastValueFrom, of, toArray } from 'rxjs';
+import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { Logger } from '@nestjs/common';
 
@@ -43,7 +44,12 @@ describe('FilesService', () => {
   });
 
   const mockRepo = {
-    saveFile: jest.fn<(metadata: FileMetadataRequest) => Promise<FileEntity>>(),
+    saveFile:
+      jest.fn<
+        (
+          metadata: FileMetadataRequest & { fileId: string },
+        ) => Promise<FileEntity>
+      >(),
     getFile: jest.fn<(fileId: string) => Promise<FileEntity | null>>(),
     getListFiles:
       jest.fn<
@@ -58,6 +64,179 @@ describe('FilesService', () => {
         (downloadFileRequest: DownloadFileRequest) => Promise<FileEntity | null>
       >(),
   };
+
+  it('saveFile успешно сохраняет файл', async () => {
+    const metadata = {
+      fileName: 'cat.png',
+      mimeType: 'image/png',
+      size: 3,
+      taskId: '11111111-1111-4111-8111-111111111111',
+      userId: '22222222-2222-4222-8222-222222222222',
+    };
+
+    const writeTarget: Buffer[] = [];
+    const fakeWriteStream = new Writable({
+      write(chunk, _encoding, callback) {
+        const buffer = Buffer.from(chunk as Buffer);
+
+        if (buffer.length) writeTarget.push(buffer);
+
+        callback();
+      },
+    });
+
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(fakeWriteStream as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    mockRepo.saveFile.mockResolvedValue({
+      fileId: 'mock-id',
+    } as FileEntity);
+
+    try {
+      const result = await service.saveFile(
+        of<UploadFileRequestDto>(
+          { content: new Uint8Array(0), metadata } as UploadFileRequestDto,
+          {
+            content: new Uint8Array([1, 2, 3]),
+            metadata: undefined,
+          } as UploadFileRequestDto,
+        ),
+      );
+
+      expect(result.fileId).toEqual(expect.any(String));
+      expect(writeTarget).toEqual([Buffer.from([1, 2, 3])]);
+      expect(mockRepo.saveFile).toHaveBeenCalledWith({
+        fileId: expect.any(String),
+        ...metadata,
+      });
+      expect(unlinkSpy).not.toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
+  it('saveFile возвращает RpcException с кодом 3, если поток пуст', async () => {
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(new Writable() as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    try {
+      let caughtError: unknown;
+
+      try {
+        await service.saveFile(of<UploadFileRequestDto>());
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeInstanceOf(RpcException);
+      expect((caughtError as RpcException).getError()).toEqual({
+        code: 3,
+        message: 'Пустой поток',
+      });
+      expect(mockRepo.saveFile).not.toHaveBeenCalled();
+      expect(unlinkSpy).toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
+  it('saveFile возвращает RpcException, если content.length не совпадает с metadata.size', async () => {
+    const fakeWriteStream = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(fakeWriteStream as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    try {
+      let caughtError: unknown;
+
+      try {
+        await service.saveFile(
+          of<UploadFileRequestDto>({
+            content: new Uint8Array([1, 2, 3]),
+            metadata: {
+              fileName: 'cat.png',
+              mimeType: 'image/png',
+              size: 5,
+              taskId: '11111111-1111-4111-8111-111111111111',
+              userId: '22222222-2222-4222-8222-222222222222',
+            },
+          } as UploadFileRequestDto),
+        );
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeInstanceOf(RpcException);
+      expect((caughtError as RpcException).getError()).toEqual({
+        code: 3,
+        message: 'Размер content (3) не совпадает с metadata.size (5)',
+      });
+      expect(mockRepo.saveFile).not.toHaveBeenCalled();
+      expect(unlinkSpy).toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
+  it('saveFile возвращает RpcException, если metadata невалидна', async () => {
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(new Writable() as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    try {
+      let caughtError: unknown;
+
+      try {
+        await service.saveFile(
+          of<UploadFileRequestDto>({
+            content: new Uint8Array(0),
+            metadata: {
+              fileName: 'cat.png',
+              mimeType: 'image/png',
+              size: 3,
+              taskId: 'not-a-uuid',
+              userId: '22222222-2222-4222-8222-222222222222',
+            },
+          } as UploadFileRequestDto),
+        );
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeInstanceOf(RpcException);
+      expect(mockRepo.saveFile).not.toHaveBeenCalled();
+      expect(unlinkSpy).toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
 
   it('getListFiles возвращает файлы, которые нашёл репозиторий', async () => {
     const file: FileMetadataResponse = {
@@ -77,21 +256,11 @@ describe('FilesService', () => {
     expect(result).toEqual({ files: [file] });
   });
 
-  it(`getListFiles возвращает RpcException с кодом 5, если для задачи нет файлов`, async () => {
+  it('getListFiles возвращает пустой список, если для задачи нет файлов', async () => {
     mockRepo.getListFiles.mockResolvedValue([] as FileMetadataResponse[]);
 
-    let caughtError: unknown;
-
-    try {
-      await service.getListFiles(mockTaskUserId);
-    } catch (err: unknown) {
-      caughtError = err;
-    }
-
-    expect(caughtError).toBeInstanceOf(RpcException);
-    expect((caughtError as RpcException).getError()).toEqual({
-      code: 5,
-      message: `Для данной задачи нет подходящих файлов`,
+    await expect(service.getListFiles(mockTaskUserId)).resolves.toEqual({
+      files: [],
     });
 
     expect(mockRepo.getListFiles).toHaveBeenCalledWith(mockTaskUserId);
@@ -131,23 +300,32 @@ describe('FilesService', () => {
     } as FileEntity);
     mockRepo.deleteFile.mockRejectedValue(error);
 
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
     let caughtError: unknown;
 
     try {
-      await service.deleteFile(mockFileUserId);
-    } catch (err: unknown) {
-      caughtError = err;
+      try {
+        await service.deleteFile(mockFileUserId);
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBe(error);
+      expect(caughtError).toBeInstanceOf(RpcException);
+
+      expect((caughtError as RpcException).getError()).toEqual({
+        code: 5,
+        message: 'Файл не найден',
+      });
+
+      expect(unlinkSpy).toHaveBeenCalled();
+      expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
+    } finally {
+      unlinkSpy.mockRestore();
     }
-
-    expect(caughtError).toBe(error);
-    expect(caughtError).toBeInstanceOf(RpcException);
-
-    expect((caughtError as RpcException).getError()).toEqual({
-      code: 5,
-      message: 'Файл не найден',
-    });
-
-    expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
   });
 
   it(`deleteFile пробрасывает неизвестную ошибку как есть`, async () => {
@@ -159,16 +337,25 @@ describe('FilesService', () => {
     } as FileEntity);
     mockRepo.deleteFile.mockRejectedValue(error);
 
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
     let caughtError: unknown;
 
     try {
-      await service.deleteFile(mockFileUserId);
-    } catch (err: unknown) {
-      caughtError = err;
-    }
+      try {
+        await service.deleteFile(mockFileUserId);
+      } catch (err: unknown) {
+        caughtError = err;
+      }
 
-    expect(caughtError).toBe(error);
-    expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
+      expect(caughtError).toBe(error);
+      expect(unlinkSpy).toHaveBeenCalled();
+      expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
+    } finally {
+      unlinkSpy.mockRestore();
+    }
   });
 
   it(`deleteFile выбрасывает RpcException с кодом 5, если affected равен 0`, async () => {
@@ -178,26 +365,30 @@ describe('FilesService', () => {
     } as FileEntity);
     mockRepo.deleteFile.mockResolvedValue({ affected: 0 } as DeleteResult);
 
-    const unlinkSpy = jest.spyOn(fs.promises, 'unlink');
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
 
     let caughtError: unknown;
 
     try {
-      await service.deleteFile(mockFileUserId);
-    } catch (err: unknown) {
-      caughtError = err;
+      try {
+        await service.deleteFile(mockFileUserId);
+      } catch (err: unknown) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeInstanceOf(RpcException);
+      expect((caughtError as RpcException).getError()).toEqual({
+        code: 5,
+        message: `Файл с ID: ${mockFileUserId.fileId} не найден`,
+      });
+
+      expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
+      expect(unlinkSpy).toHaveBeenCalled();
     } finally {
       unlinkSpy.mockRestore();
     }
-
-    expect(caughtError).toBeInstanceOf(RpcException);
-    expect((caughtError as RpcException).getError()).toEqual({
-      code: 5,
-      message: `Файл с ID: ${mockFileUserId.fileId} не найден`,
-    });
-
-    expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
-    expect(unlinkSpy).not.toHaveBeenCalled();
   });
 
   it(`deleteFile выбрасывает RpcException с кодом 5, если файл не найден`, async () => {
@@ -278,6 +469,51 @@ describe('FilesService', () => {
         mockFileUserId,
       );
       expect(readStreamSpy).toHaveBeenCalled();
+    } finally {
+      readStreamSpy.mockRestore();
+    }
+  });
+
+  it('downloadFile отправляет metadata только в первом сообщении', async () => {
+    const file = {
+      fileId: mockFileUserId.fileId,
+      fileName: 'report.pdf',
+      mimeType: 'application/pdf',
+      size: 5,
+      taskId: 'task-id',
+      userId: mockFileUserId.userId,
+      uploadedAt: '2026-08-26T00:00:00.000Z',
+    };
+    mockRepo.downloadFileVerifyUser.mockResolvedValue(file);
+
+    const readStreamSpy = jest
+      .spyOn(fs, 'createReadStream')
+      .mockReturnValue(Readable.from([Buffer.from('hello')]) as fs.ReadStream);
+
+    try {
+      const result$ = await service.downloadFile(mockFileUserId);
+      const messages = await lastValueFrom(result$.pipe(toArray()));
+
+      expect(messages).toEqual([
+        {
+          chunk: new Uint8Array(),
+          metadata: {
+            fileId: file.fileId,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            size: file.size,
+            taskId: file.taskId,
+            uploadedAt: file.uploadedAt,
+          },
+        },
+        { chunk: Buffer.from('hello'), metadata: undefined },
+      ]);
+      expect(mockRepo.downloadFileVerifyUser).toHaveBeenCalledWith(
+        mockFileUserId,
+      );
+      expect(readStreamSpy).toHaveBeenCalledWith(
+        expect.stringContaining(mockFileUserId.fileId),
+      );
     } finally {
       readStreamSpy.mockRestore();
     }

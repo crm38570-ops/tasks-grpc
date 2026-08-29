@@ -10,3 +10,4 @@ test/downloaded-*.jpg
 
 # локальный блокнот, не коммитится
 TASKS.md
+.commandcode

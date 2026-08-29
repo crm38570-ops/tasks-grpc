@@ -1,6 +1,15 @@
-import { catchError, firstValueFrom, map, throwError } from 'rxjs';
+import {
+  catchError,
+  firstValueFrom,
+  map,
+  Observable,
+  ReplaySubject,
+  skip,
+  throwError,
+} from 'rxjs';
 import {
   DeleteFileResponse,
+  DownloadFileResponse,
   ListFilesResponse,
   UploadFileRequest,
   UploadFileResponse,
@@ -20,31 +29,23 @@ import { TasksService } from '../tasks/tasks.service';
 import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { UploadFileInputInterface } from './interfaces';
+import { handleFileError } from './services/handle.file.error';
+import type { Request } from 'express';
 
 @Injectable()
 export class FilesService {
-  private readonly logger = new Logger('FilesService');
+  private readonly logger = new Logger('FilesService', { timestamp: true });
 
   constructor(
     private readonly filesClientService: FilesClientService,
     private readonly tasksService: TasksService,
   ) {}
 
-  private handleFileError(error: unknown): never {
-    const grpcError = error as { code?: number };
-
-    if (grpcError.code === 5) {
-      throw new NotFoundException('Файл не найден');
-    }
-
-    throw error;
-  }
-
   async uploadFile(
-    uploadFileInputInterface: UploadFileInputInterface,
+    uploadFileInput: UploadFileInputInterface,
     userId: string,
   ): Promise<UploadFileResponse> {
-    const { metadata, content } = uploadFileInputInterface;
+    const { metadata, content } = uploadFileInput;
 
     if (!metadata) {
       throw new BadRequestException('Метаданные файла обязательны');
@@ -56,14 +57,22 @@ export class FilesService {
 
     await this.validateUserTask(taskId, userId);
 
-    const grpcRequest: UploadFileRequest = {
-      content: content,
-      metadata: { ...metadata, userId: userId },
-    };
+    const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
+      subscriber.next({
+        content: new Uint8Array(0),
+        metadata: { ...metadata, userId },
+      });
+
+      content.on('data', (chunk: Buffer) =>
+        subscriber.next({ content: chunk, metadata: undefined }),
+      );
+      content.on('end', () => subscriber.complete());
+      content.on('error', (error: Error) => subscriber.error(error));
+    });
 
     try {
       const response = await firstValueFrom(
-        this.filesClientService.uploadFile(grpcRequest),
+        this.filesClientService.uploadFile(grpcRequest$),
       );
 
       this.logger.log(
@@ -99,13 +108,14 @@ export class FilesService {
         `List failed: userId=${userId}, taskId=${taskId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 
   async downloadFile(
     downloadFileDto: DownloadFileReqDto,
     userId: string,
+    req: Request,
   ): Promise<StreamableFile> {
     const { fileId, taskId } = downloadFileDto;
 
@@ -122,31 +132,63 @@ export class FilesService {
     );
 
     if (!hasAccess) {
+      this.logger.warn(
+        `Download rejected: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=file_not_found`,
+      );
       throw new NotFoundException('Файл не найден');
+    }
+
+    const download$ = this.filesClientService
+      .downloadFile({ fileId, userId })
+      .pipe(
+        catchError((err: unknown) => {
+          this.logger.error(
+            `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
+            err instanceof Error ? err.stack : String(err),
+          );
+
+          const grpcError = err as { code?: number };
+
+          if (grpcError.code === 5) {
+            return throwError(() => new NotFoundException('Файл не найден'));
+          }
+
+          return throwError(() => err);
+        }),
+      );
+
+    const responseSubject = new ReplaySubject<DownloadFileResponse>(1);
+    const subscription = download$.subscribe(responseSubject);
+    const firstResponse = await firstValueFrom(responseSubject);
+    const metadata = firstResponse.metadata;
+
+    if (!metadata) {
+      this.logger.error(
+        `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=missing_metadata`,
+      );
+      throw new Error(`Files service returned no metadata`);
     }
 
     const fileReadableStream = Readable.from(
       eachValueFrom(
-        this.filesClientService.downloadFile({ fileId, userId }).pipe(
+        responseSubject.pipe(
+          skip(1),
           map(({ chunk }) => chunk),
-          catchError((error: unknown) => {
-            this.logger.error(
-              `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
-              error instanceof Error ? error.stack : String(error),
-            );
-            const grpcError = error as { code?: number };
-
-            if (grpcError.code === 5) {
-              return throwError(() => new NotFoundException('Файл не найден'));
-            }
-
-            return throwError(() => error);
-          }),
         ),
       ),
     );
 
-    return new StreamableFile(fileReadableStream);
+    req.once('close', () => {
+      this.logger.debug(
+        `Download client disconnected: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
+      );
+      subscription.unsubscribe();
+    });
+
+    return new StreamableFile(fileReadableStream, {
+      type: metadata.mimeType,
+      disposition: `attachment; filename="${metadata.fileName}"`,
+    });
   }
 
   async deleteFile(
@@ -175,7 +217,7 @@ export class FilesService {
         `Delete failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
         err instanceof Error ? err.stack : String(err),
       );
-      this.handleFileError(err);
+      return handleFileError(err);
     }
   }
 

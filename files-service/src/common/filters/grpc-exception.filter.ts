@@ -4,7 +4,9 @@ import { status } from '@grpc/grpc-js';
 
 @Catch()
 export class GrpcExceptionFilter implements ExceptionFilter {
-  private logger = new Logger('GrpcExceptionFilter', { timestamp: true });
+  private readonly logger = new Logger('GrpcExceptionFilter', {
+    timestamp: true,
+  });
 
   catch(exception: unknown, _host: ArgumentsHost) {
     if (exception instanceof RpcException) {
@@ -14,7 +16,12 @@ export class GrpcExceptionFilter implements ExceptionFilter {
 
     void _host;
 
-    // Здесь нужно доделать логирование
+    const error =
+      exception instanceof Error ? exception : new Error(String(exception));
+    this.logger.error(
+      `Необработанное исключение в gRPC: ${error.message}`,
+      error.stack,
+    );
     throw new RpcException({
       code: status.INTERNAL,
       message: 'Внутренняя ошибка сервера',

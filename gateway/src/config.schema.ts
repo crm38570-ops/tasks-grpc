@@ -5,7 +5,7 @@ export const configValidationSchema = Joi.object({
   PORT: Joi.number().required(),
   AUTH_SERVICE_URL: Joi.string().required(),
   TASKS_SERVICE_URL: Joi.string().required(),
-  FILES_SERVICE_URL: Joi.string().required(),
 
   JWT_SECRET: Joi.string().required(),
+  CORS_ORIGINS: Joi.string().required(),
 });

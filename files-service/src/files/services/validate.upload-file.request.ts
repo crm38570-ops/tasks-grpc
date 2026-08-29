@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
+import { UploadFileRequestDto } from '../../dto/upload-file.request.dto';
 import { validateSync } from 'class-validator';
 import { errorsMapper } from './errors.mapper';
 

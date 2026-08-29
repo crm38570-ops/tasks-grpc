@@ -6,8 +6,8 @@ import {
   FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
-} from './proto/files/generated/files_service';
-import { DeleteResult } from 'typeorm/browser';
+} from '../proto/files/generated/files_service';
+import type { DeleteResult } from 'typeorm';
 import { FileEntity } from './file.entity';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class FilesRepository extends Repository<FileEntity> {
   }
 
   async saveFile(
-    fileMetadataRequest: FileMetadataRequest,
+    fileMetadataRequest: FileMetadataRequest & { fileId: string },
   ): Promise<FileEntity> {
     return await this.save(this.create(fileMetadataRequest));
   }
