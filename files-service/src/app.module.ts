@@ -19,7 +19,7 @@ import { APP_FILTER } from '@nestjs/core';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         autoLoadEntities: true,
-        synchronize: process.env.STAGE === 'dev' ? true : false,
+        synchronize: false,
         host: configService.get('DB_HOST'),
         port: configService.get('DB_PORT'),
         username: configService.get('DB_USERNAME'),

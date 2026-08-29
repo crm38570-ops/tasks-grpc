@@ -21,7 +21,7 @@ import { FileEntity } from '../files/file.entity';
 import { RpcException } from '@nestjs/microservices';
 import fs from 'node:fs';
 import { Readable, Writable } from 'node:stream';
-import { lastValueFrom, of } from 'rxjs';
+import { lastValueFrom, of, toArray } from 'rxjs';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { Logger } from '@nestjs/common';
@@ -256,21 +256,11 @@ describe('FilesService', () => {
     expect(result).toEqual({ files: [file] });
   });
 
-  it(`getListFiles возвращает RpcException с кодом 5, если для задачи нет файлов`, async () => {
+  it('getListFiles возвращает пустой список, если для задачи нет файлов', async () => {
     mockRepo.getListFiles.mockResolvedValue([] as FileMetadataResponse[]);
 
-    let caughtError: unknown;
-
-    try {
-      await service.getListFiles(mockTaskUserId);
-    } catch (err: unknown) {
-      caughtError = err;
-    }
-
-    expect(caughtError).toBeInstanceOf(RpcException);
-    expect((caughtError as RpcException).getError()).toEqual({
-      code: 5,
-      message: `Для данной задачи нет подходящих файлов`,
+    await expect(service.getListFiles(mockTaskUserId)).resolves.toEqual({
+      files: [],
     });
 
     expect(mockRepo.getListFiles).toHaveBeenCalledWith(mockTaskUserId);
@@ -479,6 +469,51 @@ describe('FilesService', () => {
         mockFileUserId,
       );
       expect(readStreamSpy).toHaveBeenCalled();
+    } finally {
+      readStreamSpy.mockRestore();
+    }
+  });
+
+  it('downloadFile отправляет metadata только в первом сообщении', async () => {
+    const file = {
+      fileId: mockFileUserId.fileId,
+      fileName: 'report.pdf',
+      mimeType: 'application/pdf',
+      size: 5,
+      taskId: 'task-id',
+      userId: mockFileUserId.userId,
+      uploadedAt: '2026-08-26T00:00:00.000Z',
+    };
+    mockRepo.downloadFileVerifyUser.mockResolvedValue(file);
+
+    const readStreamSpy = jest
+      .spyOn(fs, 'createReadStream')
+      .mockReturnValue(Readable.from([Buffer.from('hello')]) as fs.ReadStream);
+
+    try {
+      const result$ = await service.downloadFile(mockFileUserId);
+      const messages = await lastValueFrom(result$.pipe(toArray()));
+
+      expect(messages).toEqual([
+        {
+          chunk: new Uint8Array(),
+          metadata: {
+            fileId: file.fileId,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            size: file.size,
+            taskId: file.taskId,
+            uploadedAt: file.uploadedAt,
+          },
+        },
+        { chunk: Buffer.from('hello'), metadata: undefined },
+      ]);
+      expect(mockRepo.downloadFileVerifyUser).toHaveBeenCalledWith(
+        mockFileUserId,
+      );
+      expect(readStreamSpy).toHaveBeenCalledWith(
+        expect.stringContaining(mockFileUserId.fileId),
+      );
     } finally {
       readStreamSpy.mockRestore();
     }
