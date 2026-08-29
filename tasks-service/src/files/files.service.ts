@@ -1,6 +1,15 @@
-import { catchError, firstValueFrom, map, Observable, throwError } from 'rxjs';
+import {
+  catchError,
+  firstValueFrom,
+  map,
+  Observable,
+  ReplaySubject,
+  skip,
+  throwError,
+} from 'rxjs';
 import {
   DeleteFileResponse,
+  DownloadFileResponse,
   ListFilesResponse,
   UploadFileRequest,
   UploadFileResponse,
@@ -21,10 +30,11 @@ import { DownloadFileReqDto } from './dto/download-file.req.dto';
 import { DeleteFileReqDto } from './dto/delete-file.req.dto';
 import { UploadFileInputInterface } from './interfaces';
 import { handleFileError } from './services/handle.file.error';
+import type { Request } from 'express';
 
 @Injectable()
 export class FilesService {
-  private readonly logger = new Logger('FilesService');
+  private readonly logger = new Logger('FilesService', { timestamp: true });
 
   constructor(
     private readonly filesClientService: FilesClientService,
@@ -105,6 +115,7 @@ export class FilesService {
   async downloadFile(
     downloadFileDto: DownloadFileReqDto,
     userId: string,
+    req: Request,
   ): Promise<StreamableFile> {
     const { fileId, taskId } = downloadFileDto;
 
@@ -121,31 +132,63 @@ export class FilesService {
     );
 
     if (!hasAccess) {
+      this.logger.warn(
+        `Download rejected: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=file_not_found`,
+      );
       throw new NotFoundException('Файл не найден');
+    }
+
+    const download$ = this.filesClientService
+      .downloadFile({ fileId, userId })
+      .pipe(
+        catchError((err: unknown) => {
+          this.logger.error(
+            `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
+            err instanceof Error ? err.stack : String(err),
+          );
+
+          const grpcError = err as { code?: number };
+
+          if (grpcError.code === 5) {
+            return throwError(() => new NotFoundException('Файл не найден'));
+          }
+
+          return throwError(() => err);
+        }),
+      );
+
+    const responseSubject = new ReplaySubject<DownloadFileResponse>(1);
+    const subscription = download$.subscribe(responseSubject);
+    const firstResponse = await firstValueFrom(responseSubject);
+    const metadata = firstResponse.metadata;
+
+    if (!metadata) {
+      this.logger.error(
+        `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}, reason=missing_metadata`,
+      );
+      throw new Error(`Files service returned no metadata`);
     }
 
     const fileReadableStream = Readable.from(
       eachValueFrom(
-        this.filesClientService.downloadFile({ fileId, userId }).pipe(
+        responseSubject.pipe(
+          skip(1),
           map(({ chunk }) => chunk),
-          catchError((error: unknown) => {
-            this.logger.error(
-              `Download failed: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
-              error instanceof Error ? error.stack : String(error),
-            );
-            const grpcError = error as { code?: number };
-
-            if (grpcError.code === 5) {
-              return throwError(() => new NotFoundException('Файл не найден'));
-            }
-
-            return throwError(() => error);
-          }),
         ),
       ),
     );
 
-    return new StreamableFile(fileReadableStream);
+    req.once('close', () => {
+      this.logger.debug(
+        `Download client disconnected: userId=${userId}, taskId=${taskId}, fileId=${fileId}`,
+      );
+      subscription.unsubscribe();
+    });
+
+    return new StreamableFile(fileReadableStream, {
+      type: metadata.mimeType,
+      disposition: `attachment; filename="${metadata.fileName}"`,
+    });
   }
 
   async deleteFile(
