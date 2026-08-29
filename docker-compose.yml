@@ -119,8 +119,8 @@ services:
 
   tasks-service:
     build:
-      context: ./tasks-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: tasks-service/Dockerfile
     restart: unless-stopped
     environment:
       STAGE: dev
@@ -133,6 +133,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
+      PROTO_PATH: /app/proto/files/files_service.proto
     depends_on:
       postgres:
         condition: service_healthy
