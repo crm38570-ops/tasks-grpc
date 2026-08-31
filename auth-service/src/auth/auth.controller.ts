@@ -3,13 +3,9 @@ import { AuthService } from './auth.service';
 import { AuthCredentialsDto, UserResponseDto } from './dto';
 import { GrpcMethod } from '@nestjs/microservices';
 import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
-import {
-  AuthServiceController,
-  AuthServiceControllerMethods,
-} from '../proto/auth/generated/auth_service';
+import { AuthServiceController } from '../proto/auth/generated/auth_service';
 
 @Controller('auth')
-@AuthServiceControllerMethods()
 export class AuthController implements AuthServiceController {
   private readonly logger = new Logger('AuthController', { timestamp: true });
 
