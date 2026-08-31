@@ -10,9 +10,17 @@ const rel = (p) => './' + path.relative(serviceRoot, p).replace(/\\/g, '/');
 const relWin = (p) => '.' + path.sep + path.relative(serviceRoot, p);
 
 const protoc = rel(
-  path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin', `protoc${win ? '.exe' : ''}`),
+  path.join(
+    serviceRoot,
+    'node_modules',
+    'grpc-tools',
+    'bin',
+    `protoc${win ? '.exe' : ''}`,
+  ),
 );
-const include = rel(path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin'));
+const include = rel(
+  path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin'),
+);
 const plugin = (win ? relWin : rel)(
   path.join(
     serviceRoot,
@@ -33,8 +41,9 @@ function findProtos(dir, acc = []) {
 }
 
 for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
+  const moduleDir = path.dirname(proto);
   const protoRoot = path.join(repositoryRoot, 'proto');
-  const outDir = path.join(serviceRoot, 'src', 'proto', 'files', 'generated');
+  const outDir = path.join(serviceRoot, 'src', 'proto', 'auth', 'generated');
   fs.mkdirSync(outDir, { recursive: true });
   execFileSync(
     protoc,
@@ -48,6 +57,10 @@ for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
     ],
     { stdio: 'inherit' },
   );
+
+  const protoDest = path.join(serviceRoot, 'src', 'proto', path.basename(moduleDir));
+  fs.mkdirSync(protoDest, { recursive: true });
+  fs.copyFileSync(proto, path.join(protoDest, path.basename(proto)));
   console.log(
     `generated: ${path.relative(repositoryRoot, proto)} -> ${path.relative(serviceRoot, outDir)}`,
   );

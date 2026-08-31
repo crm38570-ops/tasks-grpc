@@ -4,15 +4,24 @@ const { execFileSync } = require('child_process');
 
 const serviceRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(serviceRoot, '..');
+const protoRoot = path.join(repositoryRoot, 'proto', 'gateway');
 
 const win = process.platform === 'win32';
 const rel = (p) => './' + path.relative(serviceRoot, p).replace(/\\/g, '/');
 const relWin = (p) => '.' + path.sep + path.relative(serviceRoot, p);
 
 const protoc = rel(
-  path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin', `protoc${win ? '.exe' : ''}`),
+  path.join(
+    serviceRoot,
+    'node_modules',
+    'grpc-tools',
+    'bin',
+    `protoc${win ? '.exe' : ''}`,
+  ),
 );
-const include = rel(path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin'));
+const include = rel(
+  path.join(serviceRoot, 'node_modules', 'grpc-tools', 'bin'),
+);
 const plugin = (win ? relWin : rel)(
   path.join(
     serviceRoot,
@@ -32,22 +41,27 @@ function findProtos(dir, acc = []) {
   return acc;
 }
 
-for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
-  const protoRoot = path.join(repositoryRoot, 'proto');
-  const outDir = path.join(serviceRoot, 'src', 'proto', 'files', 'generated');
+for (const proto of findProtos(protoRoot)) {
+  const moduleDir = path.dirname(proto);
+  const outDir = path.join(serviceRoot, 'src', 'proto', path.basename(moduleDir), 'generated');
   fs.mkdirSync(outDir, { recursive: true });
+
   execFileSync(
     protoc,
     [
       `--plugin=protoc-gen-ts_proto=${plugin}`,
       `--ts_proto_out=${rel(outDir)}`,
       '--ts_proto_opt=nestJs=true',
-      `--proto_path=${rel(protoRoot)}`,
+      `--proto_path=${rel(moduleDir)}`,
       `--proto_path=${include}`,
-      rel(proto),
+      rel(path.join(moduleDir, path.basename(proto))),
     ],
     { stdio: 'inherit' },
   );
+
+  const protoDest = path.join(serviceRoot, 'src', 'proto', path.basename(moduleDir));
+  fs.mkdirSync(protoDest, { recursive: true });
+  fs.copyFileSync(proto, path.join(protoDest, path.basename(proto)));
   console.log(
     `generated: ${path.relative(repositoryRoot, proto)} -> ${path.relative(serviceRoot, outDir)}`,
   );

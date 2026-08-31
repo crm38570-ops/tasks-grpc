@@ -1,26 +1,26 @@
-import { Body, Controller, Logger, Post } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthCredentialsDto, UserResponseDto } from './dto';
-import { JwtAccessToken } from './types/jwt-access-token.interface';
+import { GrpcMethod } from '@nestjs/microservices';
+import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
+import { AuthServiceController } from '../proto/auth/generated/auth_service';
 
 @Controller('auth')
-export class AuthController {
+export class AuthController implements AuthServiceController {
   private readonly logger = new Logger('AuthController', { timestamp: true });
 
   constructor(private authService: AuthService) {}
 
-  @Post('signup')
-  signUp(
-    @Body() authCredentialsDto: AuthCredentialsDto,
-  ): Promise<UserResponseDto> {
+  @GrpcMethod('AuthService', 'SignUp')
+  signUp(authCredentialsDto: AuthCredentialsDto): Promise<UserResponseDto> {
     this.logger.verbose(`User "${authCredentialsDto.username}" signing up`);
     return this.authService.signUp(authCredentialsDto);
   }
 
-  @Post('signin')
+  @GrpcMethod('AuthService', 'SignIn')
   async signIn(
-    @Body() authCredentialsDto: AuthCredentialsDto,
-  ): Promise<JwtAccessToken> {
+    authCredentialsDto: AuthCredentialsDto,
+  ): Promise<JwtAccessTokenDto> {
     this.logger.verbose(`User "${authCredentialsDto.username}" signing in`);
     return this.authService.signIn(authCredentialsDto);
   }

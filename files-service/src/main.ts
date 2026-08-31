@@ -15,7 +15,7 @@ async function bootstrap() {
       transport: Transport.GRPC,
       options: {
         package: 'files',
-        protoPath: join(__dirname, 'proto', 'files', 'files_service.proto'),
+        protoPath: process.env.PROTO_PATH ?? join(__dirname, 'proto', 'files', 'files_service.proto'),
         url: `0.0.0.0:${port}`,
         loader: {
           longs: Number,

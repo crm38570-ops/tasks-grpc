@@ -4,6 +4,7 @@ export const configValidationSchema = Joi.object({
   STAGE: Joi.string().required(),
   PORT: Joi.number().required(),
   AUTH_SERVICE_URL: Joi.string().required(),
+  AUTH_GRPC_URL: Joi.string().required(),
   TASKS_SERVICE_URL: Joi.string().required(),
 
   JWT_SECRET: Joi.string().required(),
