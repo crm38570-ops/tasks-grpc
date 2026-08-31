@@ -1,6 +1,7 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { SignUpRequest } from '../../proto/auth/generated/auth_service';
 
-export class AuthCredentialsDto {
+export class AuthCredentialsDto implements SignUpRequest {
   @IsString()
   @MinLength(2)
   @MaxLength(40)
