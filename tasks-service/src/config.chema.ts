@@ -1,4 +1,4 @@
-import Joi from '@hapi/joi';
+import Joi from 'joi';
 
 export const configValidationSchema = Joi.object({
   STAGE: Joi.string().required(),
