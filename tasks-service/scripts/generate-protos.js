@@ -33,8 +33,14 @@ function findProtos(dir, acc = []) {
 }
 
 for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
-  const protoRoot = path.join(repositoryRoot, 'proto');
-  const outDir = path.join(serviceRoot, 'src', 'proto', 'files', 'generated');
+  const moduleDir = path.dirname(proto);
+  const outDir = path.join(
+    serviceRoot,
+    'src',
+    'proto',
+    path.basename(moduleDir),
+    'generated',
+  );
   fs.mkdirSync(outDir, { recursive: true });
   execFileSync(
     protoc,
@@ -42,7 +48,7 @@ for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
       `--plugin=protoc-gen-ts_proto=${plugin}`,
       `--ts_proto_out=${rel(outDir)}`,
       '--ts_proto_opt=nestJs=true',
-      `--proto_path=${rel(protoRoot)}`,
+      `--proto_path=${rel(moduleDir)}`,
       `--proto_path=${include}`,
       rel(proto),
     ],
