@@ -9,6 +9,7 @@ import type {
   GetTaskByIdRequestDto,
   ListTasksRequestDto,
   UpdateTaskStatusRequestDto,
+  ValidateTaskOwnerRequestDto,
 } from './dto';
 import type {
   CreateTaskResponse,
@@ -17,6 +18,7 @@ import type {
   ListTasksResponse,
   UpdateTaskStatusResponse,
 } from '../proto/tasks/generated/tasks_service';
+import type { ValidateTaskOwnerResponse } from '../proto/tasks_internal/generated/tasks_internal_service';
 
 @Injectable()
 export class TasksService {
@@ -114,6 +116,23 @@ export class TasksService {
 
     const updated = await this.tasksRepository.updateTaskStatus(task);
     return { task: toTaskResponse(updated) };
+  }
+
+  async validateTaskOwner(
+    request: ValidateTaskOwnerRequestDto,
+  ): Promise<ValidateTaskOwnerResponse> {
+    const { taskId, userId } = request;
+    this.logger.log(`Validating task "${taskId}" owner "${userId}"`);
+
+    const found = await this.tasksRepository.findOne({
+      where: { id: taskId, userId },
+    });
+
+    if (!found) {
+      this.logger.warn(`Task "${taskId}" not owned by user "${userId}"`);
+    }
+
+    return { isOwner: Boolean(found) };
   }
 
   private async getTaskEntityById(id: string, userId: string): Promise<Task> {
