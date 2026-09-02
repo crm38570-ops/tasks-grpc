@@ -139,7 +139,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
-      PROTO_PATH: /app/proto/tasks/tasks_service.proto
+      PROTO_ROOT: /app/proto
     depends_on:
       postgres:
         condition: service_healthy
