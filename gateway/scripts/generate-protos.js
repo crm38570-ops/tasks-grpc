@@ -4,7 +4,7 @@ const { execFileSync } = require('child_process');
 
 const serviceRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(serviceRoot, '..');
-const protoRoot = path.join(repositoryRoot, 'proto', 'gateway');
+const protoRoot = path.join(repositoryRoot, 'proto');
 
 const win = process.platform === 'win32';
 const rel = (p) => './' + path.relative(serviceRoot, p).replace(/\\/g, '/');
