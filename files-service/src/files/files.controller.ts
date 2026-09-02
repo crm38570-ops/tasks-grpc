@@ -4,7 +4,7 @@ import type {
   ListFilesResponse,
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
-import { GrpcMethod } from '@nestjs/microservices';
+import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { FilesService } from './files.service';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
@@ -23,7 +23,7 @@ export class FilesController {
     void this.logger;
   }
 
-  @GrpcMethod('FilesService', 'UploadFile')
+  @GrpcStreamMethod('FilesService', 'UploadFile')
   async saveFile(
     uploadFileRequest$: Observable<UploadFileRequestDto>,
   ): Promise<UploadFileResponse> {
