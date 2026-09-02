@@ -1,84 +1,66 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Patch,
-  Query,
-  Logger,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import { TasksService } from './tasks.service';
-import {
-  CreateTaskDto,
-  DeleteTaskDto,
-  GetTasksFilterDto,
-  TaskResponseDto,
-  UpdateTaskStatusDto,
+import { RpcValidationPipe } from '../pipes/validation.pipe';
+import { UsePipes } from '@nestjs/common';
+import type {
+  CreateTaskRequestDto,
+  DeleteTaskRequestDto,
+  GetTaskByIdRequestDto,
+  ListTasksRequestDto,
+  UpdateTaskStatusRequestDto,
 } from './dto';
-import { GetUserId } from '../decorators/get-user-id.decorator';
+import type {
+  CreateTaskResponse,
+  DeleteTaskResponse,
+  GetTaskByIdResponse,
+  ListTasksResponse,
+  TasksServiceController,
+  UpdateTaskStatusResponse,
+} from '../proto/tasks/generated/tasks_service';
 
 @Controller('tasks')
-export class TasksController {
+@UsePipes(RpcValidationPipe)
+export class TasksController implements TasksServiceController {
   private readonly logger = new Logger('TasksController', { timestamp: true });
 
   constructor(private tasksService: TasksService) {}
 
-  @Post()
-  createTask(
-    @Body() createTaskDto: CreateTaskDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
+  @GrpcMethod('TasksService', 'CreateTask')
+  createTask(request: CreateTaskRequestDto): Promise<CreateTaskResponse> {
+    this.logger.verbose(`Create task request: userId=${request.userId}`);
+    return this.tasksService.createTask(request);
+  }
+
+  @GrpcMethod('TasksService', 'ListTasks')
+  listTasks(request: ListTasksRequestDto): Promise<ListTasksResponse> {
+    this.logger.verbose(`List tasks request: userId=${request.userId}`);
+    return this.tasksService.listTasks(request);
+  }
+
+  @GrpcMethod('TasksService', 'GetTaskById')
+  getTaskById(request: GetTaskByIdRequestDto): Promise<GetTaskByIdResponse> {
     this.logger.verbose(
-      `User "${userId}" creating a new task. Data ${JSON.stringify(createTaskDto)}`,
+      `Get task request: taskId=${request.id}, userId=${request.userId}`,
     );
-    return this.tasksService.createTask(createTaskDto, userId);
+    return this.tasksService.getTaskById(request);
   }
 
-  @Get()
-  getTasks(
-    @Query() filterDto: GetTasksFilterDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto[]> {
+  @GrpcMethod('TasksService', 'DeleteTask')
+  deleteTask(request: DeleteTaskRequestDto): Promise<DeleteTaskResponse> {
     this.logger.verbose(
-      `User "${userId}" retrieving all tasks. Filters: ${JSON.stringify(filterDto)}`,
+      `Delete task request: taskId=${request.id}, userId=${request.userId}`,
     );
-    return this.tasksService.getTasks(filterDto, userId);
+    return this.tasksService.deleteTask(request);
   }
 
-  @Get(':id')
-  getTaskById(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
-    this.logger.verbose(`User "${userId}" retrieving task with ID "${id}"`);
-    return this.tasksService.getTaskById(id, userId);
-  }
-
-  @Delete(':id')
-  deleteTaskById(
-    @Param() id: DeleteTaskDto,
-    @GetUserId() userId: string,
-  ): Promise<void> {
-    this.logger.verbose(`User "${userId}" deleting task with ID "${id.id}"`);
-    return this.tasksService.deleteTaskById(id, userId);
-  }
-
-  @Patch(':id/status')
-  update(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
+  @GrpcMethod('TasksService', 'UpdateTaskStatus')
+  updateTaskStatus(
+    request: UpdateTaskStatusRequestDto,
+  ): Promise<UpdateTaskStatusResponse> {
     this.logger.verbose(
-      `User "${userId}" updating task "${id}" status to "${updateTaskStatusDto.status}"`,
+      `Update task status request: taskId=${request.id}, userId=${request.userId}`,
     );
-    return this.tasksService.updateTaskStatus(
-      id,
-      updateTaskStatusDto.status,
-      userId,
-    );
+    return this.tasksService.updateTaskStatus(request);
   }
 }

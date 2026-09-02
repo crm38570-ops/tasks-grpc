@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package tasks;
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_OPEN = 1;
+  TASK_STATUS_IN_PROGRESS = 2;
+  TASK_STATUS_DONE = 3;
+}
+
+message CreateTaskRequest {
+  string title       = 1;
+  string description = 2;
+  string user_id     = 3;
+}
+
+message CreateTaskResponse {
+  TaskResponse task = 1;
+}
+
+message ListTasksRequest {
+  optional TaskStatus status       = 1;
+  string              search_query = 2;
+  string              user_id      = 3;
+}
+
+message TaskResponse {
+  string     id          = 1;
+  string     title       = 2;
+  string     description = 3;
+  TaskStatus status      = 4;
+}
+
+message ListTasksResponse {
+  repeated TaskResponse tasks = 1;
+}
+
+message GetTaskByIdRequest {
+  string id      = 1;
+  string user_id = 2;
+}
+
+message GetTaskByIdResponse {
+  TaskResponse task = 1;
+}
+
+
+message UpdateTaskStatusRequest {
+  string     id      = 1;
+  TaskStatus status  = 2;
+  string     user_id = 3;
+}
+
+message UpdateTaskStatusResponse {
+  TaskResponse task = 1;
+}
+
+
+message DeleteTaskRequest {
+  string id      = 1;
+  string user_id = 2;
+}
+
+message DeleteTaskResponse {}
+
+service TasksService {
+  rpc CreateTask (CreateTaskRequest) returns (CreateTaskResponse);
+  rpc ListTasks (ListTasksRequest) returns (ListTasksResponse);
+  rpc GetTaskById (GetTaskByIdRequest) returns (GetTaskByIdResponse);
+  rpc UpdateTaskStatus (UpdateTaskStatusRequest) returns (UpdateTaskStatusResponse);
+  rpc DeleteTask (DeleteTaskRequest) returns (DeleteTaskResponse);
+}
