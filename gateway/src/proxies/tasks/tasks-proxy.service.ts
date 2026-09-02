@@ -25,8 +25,11 @@ export class TasksProxyService implements OnModuleInit {
       this.client.getService<TasksServiceClient>('TasksService');
   }
 
-  async createTask(dto: CreateTaskDto, userId: string): Promise<unknown> {
-    const { title, description } = dto;
+  async createTask(
+    createTaskDto: CreateTaskDto,
+    userId: string,
+  ): Promise<unknown> {
+    const { title, description } = createTaskDto;
     this.logger.verbose(`Create task request: userId=${userId}`);
     const response = await lastValueFrom(
       this.tasksService.createTask({ title, description, userId }),
@@ -64,16 +67,17 @@ export class TasksProxyService implements OnModuleInit {
 
   async updateTaskStatus(
     id: string,
-    dto: UpdateTaskStatusDto,
+    updateTaskStatusDto: UpdateTaskStatusDto,
     userId: string,
   ): Promise<unknown> {
+    const { status } = updateTaskStatusDto;
     this.logger.verbose(
-      `Update task status request: taskId=${id}, userId=${userId}, status=${dto.status}`,
+      `Update task status request: taskId=${id}, userId=${userId}, status=${status}`,
     );
     const response = await lastValueFrom(
       this.tasksService.updateTaskStatus({
         id,
-        status: toGrpcStatus(dto.status),
+        status: toGrpcStatus(status),
         userId,
       }),
     );

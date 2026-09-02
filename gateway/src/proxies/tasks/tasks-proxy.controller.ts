@@ -37,8 +37,14 @@ export class TasksProxyController {
 
   @CreateTaskApi()
   @Post()
-  createTask(@Body() dto: CreateTaskDto, @Req() request: AuthedRequest) {
-    return this.tasksProxyService.createTask(dto, request.user.userId);
+  createTask(
+    @Body() createTaskDto: CreateTaskDto,
+    @Req() request: AuthedRequest,
+  ) {
+    return this.tasksProxyService.createTask(
+      createTaskDto,
+      request.user.userId,
+    );
   }
 
   @GetTasksApi()
@@ -63,12 +69,12 @@ export class TasksProxyController {
   @Patch(':id/status')
   updateTaskStatus(
     @Param() { id }: TaskIdParamDto,
-    @Body() dto: UpdateTaskStatusDto,
+    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
     @Req() request: AuthedRequest,
   ) {
     return this.tasksProxyService.updateTaskStatus(
       id,
-      dto,
+      updateTaskStatusDto,
       request.user.userId,
     );
   }
