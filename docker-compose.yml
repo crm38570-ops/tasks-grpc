@@ -98,6 +98,7 @@ services:
       STAGE: dev
       GRPC_PORT: ${FILES_GRPC_PORT}
       PROTO_PATH: /app/proto/files/files_service.proto
+      TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
@@ -138,7 +139,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
-      PROTO_PATH: /app/proto/tasks/tasks_service.proto
+      PROTO_ROOT: /app/proto
     depends_on:
       postgres:
         condition: service_healthy

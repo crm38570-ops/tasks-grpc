@@ -25,6 +25,7 @@ import { lastValueFrom, of, toArray } from 'rxjs';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { Logger } from '@nestjs/common';
+import { TaskOwnershipService } from '../files/tasks-internal/task-ownership.service';
 
 describe('FilesService', () => {
   beforeAll(() => {
@@ -40,7 +41,10 @@ describe('FilesService', () => {
     jest.clearAllMocks();
 
     process.env.FILE_DIR = './storage';
-    service = new FilesService(mockRepo as unknown as FilesRepository);
+    service = new FilesService(
+      mockRepo as unknown as FilesRepository,
+      mockTaskOwnership as unknown as TaskOwnershipService,
+    );
   });
 
   const mockRepo = {
@@ -63,6 +67,10 @@ describe('FilesService', () => {
       jest.fn<
         (downloadFileRequest: DownloadFileRequest) => Promise<FileEntity | null>
       >(),
+  };
+
+  const mockTaskOwnership = {
+    validateTaskOwner: jest.fn<(taskId: string, userId: string) => Promise<void>>(),
   };
 
   it('saveFile успешно сохраняет файл', async () => {
@@ -99,20 +107,25 @@ describe('FilesService', () => {
 
     try {
       const result = await service.saveFile(
-        of<UploadFileRequestDto>(
+        Readable.from<UploadFileRequestDto>([
           { content: new Uint8Array(0), metadata } as UploadFileRequestDto,
           {
             content: new Uint8Array([1, 2, 3]),
             metadata: undefined,
           } as UploadFileRequestDto,
-        ),
+        ]),
       );
 
       expect(result.fileId).toEqual(expect.any(String));
       expect(writeTarget).toEqual([Buffer.from([1, 2, 3])]);
+      expect(mockTaskOwnership.validateTaskOwner).toHaveBeenCalledWith(
+        metadata.taskId,
+        metadata.userId,
+      );
       expect(mockRepo.saveFile).toHaveBeenCalledWith({
         fileId: expect.any(String),
         ...metadata,
+        size: 3,
       });
       expect(unlinkSpy).not.toHaveBeenCalled();
     } finally {
@@ -134,7 +147,7 @@ describe('FilesService', () => {
       let caughtError: unknown;
 
       try {
-        await service.saveFile(of<UploadFileRequestDto>());
+        await service.saveFile(Readable.from<UploadFileRequestDto>([]));
       } catch (err: unknown) {
         caughtError = err;
       }
@@ -152,7 +165,7 @@ describe('FilesService', () => {
     }
   });
 
-  it('saveFile возвращает RpcException, если content.length не совпадает с metadata.size', async () => {
+  it('saveFile сохраняет фактический размер, если metadata.size равен 0', async () => {
     const fakeWriteStream = new Writable({
       write(_chunk, _encoding, callback) {
         callback();
@@ -168,20 +181,69 @@ describe('FilesService', () => {
       .mockResolvedValue(undefined);
 
     try {
-      let caughtError: unknown;
-
-      try {
-        await service.saveFile(
-          of<UploadFileRequestDto>({
+      await service.saveFile(
+        Readable.from<UploadFileRequestDto>([
+          {
             content: new Uint8Array([1, 2, 3]),
             metadata: {
               fileName: 'cat.png',
               mimeType: 'image/png',
-              size: 5,
+              size: 0,
               taskId: '11111111-1111-4111-8111-111111111111',
               userId: '22222222-2222-4222-8222-222222222222',
             },
-          } as UploadFileRequestDto),
+          } as UploadFileRequestDto,
+        ]),
+      );
+
+      expect(mockRepo.saveFile).toHaveBeenCalledWith({
+        fileId: expect.any(String),
+        fileName: 'cat.png',
+        mimeType: 'image/png',
+        size: 3,
+        taskId: '11111111-1111-4111-8111-111111111111',
+        userId: '22222222-2222-4222-8222-222222222222',
+      });
+      expect(unlinkSpy).not.toHaveBeenCalled();
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
+  it('saveFile возвращает RpcException с кодом 7, если задача не принадлежит пользователю', async () => {
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(new Writable() as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockResolvedValue(undefined);
+
+    mockTaskOwnership.validateTaskOwner.mockRejectedValue(
+      new RpcException({
+        code: 7,
+        message: 'Задача не найдена или недоступна пользователю',
+      }),
+    );
+
+    try {
+      let caughtError: unknown;
+
+      try {
+        await service.saveFile(
+          Readable.from<UploadFileRequestDto>([
+            {
+              content: new Uint8Array([1, 2, 3]),
+              metadata: {
+                fileName: 'cat.png',
+                mimeType: 'image/png',
+                size: 0,
+                taskId: '11111111-1111-4111-8111-111111111111',
+                userId: '22222222-2222-4222-8222-222222222222',
+              },
+            } as UploadFileRequestDto,
+          ]),
         );
       } catch (err: unknown) {
         caughtError = err;
@@ -189,8 +251,8 @@ describe('FilesService', () => {
 
       expect(caughtError).toBeInstanceOf(RpcException);
       expect((caughtError as RpcException).getError()).toEqual({
-        code: 3,
-        message: 'Размер content (3) не совпадает с metadata.size (5)',
+        code: 7,
+        message: 'Задача не найдена или недоступна пользователю',
       });
       expect(mockRepo.saveFile).not.toHaveBeenCalled();
       expect(unlinkSpy).toHaveBeenCalled();
@@ -214,16 +276,18 @@ describe('FilesService', () => {
 
       try {
         await service.saveFile(
-          of<UploadFileRequestDto>({
-            content: new Uint8Array(0),
-            metadata: {
-              fileName: 'cat.png',
-              mimeType: 'image/png',
-              size: 3,
-              taskId: 'not-a-uuid',
-              userId: '22222222-2222-4222-8222-222222222222',
-            },
-          } as UploadFileRequestDto),
+          Readable.from<UploadFileRequestDto>([
+            {
+              content: new Uint8Array(0),
+              metadata: {
+                fileName: 'cat.png',
+                mimeType: 'image/png',
+                size: 3,
+                taskId: 'not-a-uuid',
+                userId: '22222222-2222-4222-8222-222222222222',
+              },
+            } as UploadFileRequestDto,
+          ]),
         );
       } catch (err: unknown) {
         caughtError = err;

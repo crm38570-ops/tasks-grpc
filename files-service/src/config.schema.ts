@@ -9,4 +9,5 @@ export const configValidationSchema = Joi.object({
   DB_PASSWORD: Joi.string().required(),
   DB_DATABASE: Joi.string().required(),
   FILE_DIR: Joi.string().required(),
+  TASKS_GRPC_URL: Joi.string().required(),
 });
