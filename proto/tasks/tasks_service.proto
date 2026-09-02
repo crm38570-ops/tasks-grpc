@@ -15,26 +15,14 @@ message CreateTaskRequest {
   string user_id     = 3;
 }
 
+message CreateTaskResponse {
+  TaskResponse task = 1;
+}
+
 message ListTasksRequest {
   optional TaskStatus status       = 1;
   string              search_query = 2;
   string              user_id      = 3;
-}
-
-message GetTaskByIdRequest {
-  string id      = 1;
-  string user_id = 2;
-}
-
-message UpdateTaskStatusRequest {
-  string     id      = 1;
-  TaskStatus status  = 2;
-  string     user_id = 3;
-}
-
-message DeleteTaskRequest {
-  string id      = 1;
-  string user_id = 2;
 }
 
 message TaskResponse {
@@ -44,20 +32,34 @@ message TaskResponse {
   TaskStatus status      = 4;
 }
 
-message CreateTaskResponse {
-  TaskResponse task = 1;
+message ListTasksResponse {
+  repeated TaskResponse tasks = 1;
+}
+
+message GetTaskByIdRequest {
+  string id      = 1;
+  string user_id = 2;
 }
 
 message GetTaskByIdResponse {
   TaskResponse task = 1;
 }
 
+
+message UpdateTaskStatusRequest {
+  string     id      = 1;
+  TaskStatus status  = 2;
+  string     user_id = 3;
+}
+
 message UpdateTaskStatusResponse {
   TaskResponse task = 1;
 }
 
-message ListTasksResponse {
-  repeated TaskResponse tasks = 1;
+
+message DeleteTaskRequest {
+  string id      = 1;
+  string user_id = 2;
 }
 
 message DeleteTaskResponse {}
