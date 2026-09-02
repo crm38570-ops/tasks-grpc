@@ -24,7 +24,6 @@ async function bootstrap() {
 
   app.useBodyParser('json', {
     limit: '1mb',
-    extended: true,
   });
   app.useBodyParser('urlencoded', {
     limit: '1mb',

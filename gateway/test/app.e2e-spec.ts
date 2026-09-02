@@ -8,6 +8,9 @@ import { config } from './../src/swagger-config';
 
 interface OpenApiDocument {
   paths: Record<string, Record<string, OpenApiOperation>>;
+  components?: {
+    schemas?: Record<string, OpenApiSchema>;
+  };
 }
 
 interface OpenApiOperation {
@@ -39,6 +42,17 @@ interface OpenApiParameter {
   schema?: OpenApiProperty;
 }
 
+function resolveSchema(
+  document: OpenApiDocument,
+  schema?: OpenApiSchema & { $ref?: string },
+): OpenApiSchema | undefined {
+  if (schema?.$ref) {
+    const name = schema.$ref.split('/').pop() ?? '';
+    return document.components?.schemas?.[name];
+  }
+  return schema;
+}
+
 describe('Gateway (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -65,17 +79,23 @@ describe('Gateway (e2e)', () => {
       .get('/api-json')
       .expect(200);
     const document = response.body as OpenApiDocument;
-    const signupSchema =
+    const signupSchema = resolveSchema(
+      document,
       document.paths['/auth/signup'].post.requestBody?.content?.[
         'application/json'
-      ]?.schema;
-    const createTaskSchema =
+      ]?.schema,
+    );
+    const createTaskSchema = resolveSchema(
+      document,
       document.paths['/tasks'].post.requestBody?.content?.['application/json']
-        ?.schema;
-    const updateStatusSchema =
+        ?.schema,
+    );
+    const updateStatusSchema = resolveSchema(
+      document,
       document.paths['/tasks/{id}/status'].patch.requestBody?.content?.[
         'application/json'
-      ]?.schema;
+      ]?.schema,
+    );
     const taskQueryParameters = document.paths['/tasks'].get.parameters ?? [];
     const statusParameter = taskQueryParameters.find(
       (parameter) => parameter.name === 'status',
