@@ -5,6 +5,7 @@ import { TasksRepository } from '../tasks.repository';
 import { Task } from '../task.entity';
 import { TaskStatus } from '../enums/task-status.enum';
 import { NotFoundException } from '@nestjs/common';
+import { TaskStatus as GrpcTaskStatus } from '../../proto/tasks/generated/tasks_service';
 
 const mockTasksRepository = {
   findOne: jest.fn<() => Promise<Task | null>>(),
@@ -45,25 +46,35 @@ describe('TaskService', () => {
   it('Возвращает задачу если она найдена', async () => {
     mockTasksRepository.findOne.mockResolvedValue(mockTask);
 
-    const result = await service.getTaskById(mockTask.id, mockUserId);
+    const result = await service.getTaskById({
+      id: mockTask.id,
+      userId: mockUserId,
+    });
 
-    expect(result).toEqual(mockTask);
+    expect(result).toEqual({
+      task: {
+        id: mockTask.id,
+        title: mockTask.title,
+        description: mockTask.description,
+        status: GrpcTaskStatus.TASK_STATUS_OPEN,
+      },
+    });
   });
 
   it('Бросает NotFoundException, если задача не найдена', async () => {
     mockTasksRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.getTaskById(mockTask.id, mockUserId)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      service.getTaskById({ id: mockTask.id, userId: mockUserId }),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('Удаляет задачу', async () => {
     mockTasksRepository.delete.mockResolvedValue({ affected: 1 });
 
     await expect(
-      service.deleteTaskById({ id: mockTask.id }, mockUserId),
-    ).resolves.toBeUndefined();
+      service.deleteTask({ id: mockTask.id, userId: mockUserId }),
+    ).resolves.toEqual({});
 
     expect(mockTasksRepository.delete).toHaveBeenCalledWith({
       id: mockTask.id,
@@ -76,7 +87,7 @@ describe('TaskService', () => {
     mockTasksRepository.delete.mockRejectedValue(error);
 
     await expect(
-      service.deleteTaskById({ id: mockTask.id }, mockUserId),
+      service.deleteTask({ id: mockTask.id, userId: mockUserId }),
     ).rejects.toBe(error);
   });
 
@@ -86,11 +97,15 @@ describe('TaskService', () => {
       mockTaskWithStatusDone,
     );
 
-    const { id, status } = mockTaskWithStatusDone;
+    const { id } = mockTaskWithStatusDone;
 
-    const result = await service.updateTaskStatus(id, status, mockUserId);
+    const result = await service.updateTaskStatus({
+      id,
+      status: GrpcTaskStatus.TASK_STATUS_DONE,
+      userId: mockUserId,
+    });
 
-    expect(result.status).toBe(mockTaskWithStatusDone.status);
+    expect(result.task?.status).toBe(GrpcTaskStatus.TASK_STATUS_DONE);
     expect(mockTasksRepository.updateTaskStatus).toHaveBeenCalledWith(
       mockTaskWithStatusDone,
     );
