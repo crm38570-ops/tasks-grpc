@@ -12,6 +12,7 @@ export const tasksGrpcClientOptions = {
       __dirname,
       '..',
       '..',
+      '..',
       'proto',
       'tasks',
       'tasks_service.proto',
