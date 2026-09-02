@@ -3,7 +3,7 @@ import { GrpcMethod } from '@nestjs/microservices';
 import { UsePipes } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { RpcValidationPipe } from '../pipes/validation.pipe';
-import type { ValidateTaskOwnerRequestDto } from './dto';
+import { ValidateTaskOwnerRequestDto } from './dto';
 import type {
   TasksInternalServiceController,
   ValidateTaskOwnerResponse,
