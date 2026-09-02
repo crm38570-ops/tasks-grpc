@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { AuthServiceClient } from '../../proto/auth/generated/auth_service';
+import type { SignUpDto, SignInDto } from './dto';
 
 @Injectable()
 export class AuthProxyService implements OnModuleInit {
@@ -18,13 +19,13 @@ export class AuthProxyService implements OnModuleInit {
     this.authService = this.client.getService<AuthServiceClient>('AuthService');
   }
 
-  async signUp(body: { username: string; password: string }): Promise<unknown> {
-    this.logger.verbose(`Sign up request: "${body.username}"`);
-    return lastValueFrom(this.authService.signUp(body));
+  async signUp(dto: SignUpDto): Promise<unknown> {
+    this.logger.verbose(`Sign up request: "${dto.username}"`);
+    return lastValueFrom(this.authService.signUp(dto));
   }
 
-  async signIn(body: { username: string; password: string }): Promise<unknown> {
-    this.logger.verbose(`Sign in request: "${body.username}"`);
-    return lastValueFrom(this.authService.signIn(body));
+  async signIn(dto: SignInDto): Promise<unknown> {
+    this.logger.verbose(`Sign in request: "${dto.username}"`);
+    return lastValueFrom(this.authService.signIn(dto));
   }
 }

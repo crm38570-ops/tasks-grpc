@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { config } from './swagger-config';
@@ -19,6 +19,8 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.enableCors({ origin: corsOrigins });
+
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   app.useBodyParser('json', {
     limit: '1mb',
