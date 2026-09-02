@@ -1,21 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { TransformInterceptor } from './interceptors';
+import microserviceOptions from './microservice-options';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
-  const port = process.env.PORT ?? 3002;
+  const port = Number(process.env.GRPC_PORT ?? 50052);
 
-  const app = await NestFactory.create(AppModule);
-
-  app.enableCors({ origin: true });
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    microserviceOptions,
+  );
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  app.useGlobalInterceptors(new TransformInterceptor());
 
-  await app.listen(port);
-  logger.log(`Application started: transport=http, address=0.0.0.0:${port}`);
+  await app.listen();
+  logger.log(`Application started: transport=grpc, address=0.0.0.0:${port}`);
 }
 
 bootstrap().catch((error: unknown) => {
