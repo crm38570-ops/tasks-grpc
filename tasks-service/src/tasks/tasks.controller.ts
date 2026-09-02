@@ -1,84 +1,97 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  Patch,
-  Query,
-  Logger,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import { TasksService } from './tasks.service';
-import {
-  CreateTaskDto,
-  DeleteTaskDto,
-  GetTasksFilterDto,
-  TaskResponseDto,
-  UpdateTaskStatusDto,
-} from './dto';
-import { GetUserId } from '../decorators/get-user-id.decorator';
+import { Task } from './task.entity';
+import { TaskStatus } from './enums/task-status.enum';
+import type {
+  CreateTaskRequest,
+  CreateTaskResponse,
+  DeleteTaskRequest,
+  DeleteTaskResponse,
+  GetTaskByIdRequest,
+  GetTaskByIdResponse,
+  ListTasksRequest,
+  ListTasksResponse,
+  TaskResponse,
+  UpdateTaskStatusRequest,
+  UpdateTaskStatusResponse,
+} from '../proto/tasks/generated/tasks_service';
+import { TasksServiceController } from '../proto/tasks/generated/tasks_service';
+import { TaskStatus as GrpcTaskStatus } from '../proto/tasks/generated/tasks_service';
+
+const toGrpcStatus = (status: TaskStatus): GrpcTaskStatus =>
+  GrpcTaskStatus[`TASK_STATUS_${status}` as keyof typeof GrpcTaskStatus];
+
+const toEntityStatus = (status: GrpcTaskStatus): TaskStatus =>
+  GrpcTaskStatus[status].replace('TASK_STATUS_', '') as TaskStatus;
+
+const toTaskResponse = (task: Task): TaskResponse => ({
+  id: task.id,
+  title: task.title,
+  description: task.description,
+  status: toGrpcStatus(task.status),
+});
 
 @Controller('tasks')
-export class TasksController {
+export class TasksController implements TasksServiceController {
   private readonly logger = new Logger('TasksController', { timestamp: true });
 
   constructor(private tasksService: TasksService) {}
 
-  @Post()
-  createTask(
-    @Body() createTaskDto: CreateTaskDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
+  @GrpcMethod('TasksService', 'CreateTask')
+  createTask(request: CreateTaskRequest): Promise<CreateTaskResponse> {
+    const { title, description, userId } = request;
+    this.logger.verbose(`User "${userId}" creating a new task. Data: ${title}`);
+    return this.tasksService
+      .createTask({ title, description }, userId)
+      .then((task) => ({ task: toTaskResponse(task) }));
+  }
+
+  @GrpcMethod('TasksService', 'ListTasks')
+  async listTasks(request: ListTasksRequest): Promise<ListTasksResponse> {
+    const { status, searchQuery, userId } = request;
     this.logger.verbose(
-      `User "${userId}" creating a new task. Data ${JSON.stringify(createTaskDto)}`,
+      `User "${userId}" retrieving all tasks. Filters: status=${status ?? 'any'}, searchQuery=${searchQuery}`,
     );
-    return this.tasksService.createTask(createTaskDto, userId);
-  }
-
-  @Get()
-  getTasks(
-    @Query() filterDto: GetTasksFilterDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto[]> {
-    this.logger.verbose(
-      `User "${userId}" retrieving all tasks. Filters: ${JSON.stringify(filterDto)}`,
-    );
-    return this.tasksService.getTasks(filterDto, userId);
-  }
-
-  @Get(':id')
-  getTaskById(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
-    this.logger.verbose(`User "${userId}" retrieving task with ID "${id}"`);
-    return this.tasksService.getTaskById(id, userId);
-  }
-
-  @Delete(':id')
-  deleteTaskById(
-    @Param() id: DeleteTaskDto,
-    @GetUserId() userId: string,
-  ): Promise<void> {
-    this.logger.verbose(`User "${userId}" deleting task with ID "${id.id}"`);
-    return this.tasksService.deleteTaskById(id, userId);
-  }
-
-  @Patch(':id/status')
-  update(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() updateTaskStatusDto: UpdateTaskStatusDto,
-    @GetUserId() userId: string,
-  ): Promise<TaskResponseDto> {
-    this.logger.verbose(
-      `User "${userId}" updating task "${id}" status to "${updateTaskStatusDto.status}"`,
-    );
-    return this.tasksService.updateTaskStatus(
-      id,
-      updateTaskStatusDto.status,
+    const tasks = await this.tasksService.getTasks(
+      {
+        status: status === undefined ? undefined : toEntityStatus(status),
+        searchQuery: searchQuery || undefined,
+      },
       userId,
     );
+    return { tasks: tasks.map(toTaskResponse) };
+  }
+
+  @GrpcMethod('TasksService', 'GetTaskById')
+  async getTaskById(request: GetTaskByIdRequest): Promise<GetTaskByIdResponse> {
+    const { id, userId } = request;
+    this.logger.verbose(`User "${userId}" retrieving task with ID "${id}"`);
+    const task = await this.tasksService.getTaskById(id, userId);
+    return { task: toTaskResponse(task) };
+  }
+
+  @GrpcMethod('TasksService', 'DeleteTask')
+  async deleteTask(request: DeleteTaskRequest): Promise<DeleteTaskResponse> {
+    const { id, userId } = request;
+    this.logger.verbose(`User "${userId}" deleting task with ID "${id}"`);
+    await this.tasksService.deleteTaskById({ id }, userId);
+    return {};
+  }
+
+  @GrpcMethod('TasksService', 'UpdateTaskStatus')
+  async updateTaskStatus(
+    request: UpdateTaskStatusRequest,
+  ): Promise<UpdateTaskStatusResponse> {
+    const { id, status, userId } = request;
+    this.logger.verbose(
+      `User "${userId}" updating task "${id}" status to "${status}"`,
+    );
+    const task = await this.tasksService.updateTaskStatus(
+      id,
+      toEntityStatus(status),
+      userId,
+    );
+    return { task: toTaskResponse(task) };
   }
 }
