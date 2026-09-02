@@ -20,13 +20,17 @@ import { validateUploadFileRequest } from './services/validate.upload-file.reque
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { eachValueFrom } from 'rxjs-for-await';
+import { TaskOwnershipService } from './tasks-internal/task-ownership.service';
 
 @Injectable()
 export class FilesService {
   private readonly logger = new Logger('FilesService', { timestamp: true });
   private FILE_DIR: string;
 
-  constructor(private readonly filesRepository: FilesRepository) {
+  constructor(
+    private readonly filesRepository: FilesRepository,
+    private readonly taskOwnershipService: TaskOwnershipService,
+  ) {
     this.FILE_DIR = process.env.FILE_DIR!;
   }
 
@@ -58,6 +62,11 @@ export class FilesService {
           validateUploadFileRequest(message);
           validateFileName(message.metadata.fileName, this.logger);
           firstMessage = message;
+
+          await this.taskOwnershipService.validateTaskOwner(
+            message.metadata.taskId,
+            message.metadata.userId,
+          );
         }
 
         totalBytes += message.content.length;
@@ -74,7 +83,7 @@ export class FilesService {
         });
       }
 
-      validateUploadFileContent(totalBytes, firstMessage.metadata.size);
+      validateUploadFileContent(totalBytes);
 
       await new Promise<void>((res, rej) =>
         writeStream.end((err?: Error | null) => (err ? rej(err) : res())),
@@ -82,7 +91,11 @@ export class FilesService {
 
       const { metadata } = firstMessage;
 
-      await this.filesRepository.saveFile({ fileId, ...metadata });
+      await this.filesRepository.saveFile({
+        fileId,
+        ...metadata,
+        size: totalBytes,
+      });
 
       this.logger.log(`Файл с id ${fileId} успешно сохранён.`);
 
