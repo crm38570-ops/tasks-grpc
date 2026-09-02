@@ -26,19 +26,24 @@ export class TasksService {
 
   async createTask(request: CreateTaskRequestDto): Promise<CreateTaskResponse> {
     const { title, description, userId } = request;
+
     this.logger.log(`Creating task for user "${userId}": ${title}`);
+
     const task = await this.tasksRepository.createTask(
       { title, description },
       userId,
     );
+
     return { task: toTaskResponse(task) };
   }
 
   async listTasks(request: ListTasksRequestDto): Promise<ListTasksResponse> {
     const { status, searchQuery, userId } = request;
+
     this.logger.log(
       `Getting tasks for user "${userId}" with filters: status=${status ?? 'any'}, searchQuery=${searchQuery}`,
     );
+
     const tasks = await this.tasksRepository.getTasks(
       {
         status: status === undefined ? undefined : toEntityStatus(status),
@@ -46,6 +51,7 @@ export class TasksService {
       },
       userId,
     );
+
     return { tasks: tasks.map(toTaskResponse) };
   }
 
@@ -53,7 +59,9 @@ export class TasksService {
     request: GetTaskByIdRequestDto,
   ): Promise<GetTaskByIdResponse> {
     const { id, userId } = request;
+
     this.logger.log(`Getting task "${id}" for user "${userId}"`);
+
     const found = await this.tasksRepository.findOne({
       where: { id, userId },
     });
@@ -68,9 +76,11 @@ export class TasksService {
 
   async deleteTask(request: DeleteTaskRequestDto): Promise<DeleteTaskResponse> {
     const { id, userId } = request;
+
     this.logger.log(`Deleting task "${id}" for user "${userId}"`);
 
     let result: DeleteResult;
+
     try {
       result = await this.tasksRepository.delete({ id, userId });
     } catch (error) {
@@ -94,9 +104,11 @@ export class TasksService {
     request: UpdateTaskStatusRequestDto,
   ): Promise<UpdateTaskStatusResponse> {
     const { id, status, userId } = request;
+
     this.logger.log(
       `Updating task "${id}" status to "${status}" for user "${userId}"`,
     );
+
     const task = await this.getTaskEntityById(id, userId);
     task.status = toEntityStatus(status);
 
