@@ -5,6 +5,9 @@ export function SignInApi() {
   return applyDecorators(
     ApiOperation({ summary: 'Авторизация пользователя' }),
     ApiResponse({ status: 200, description: 'Пользователь авторизован' }),
-    ApiResponse({ status: 400, description: 'Некорректные данные авторизации' }),
+    ApiResponse({
+      status: 400,
+      description: 'Некорректные данные авторизации',
+    }),
   );
 }

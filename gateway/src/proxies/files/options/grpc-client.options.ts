@@ -12,6 +12,7 @@ export const filesGrpcClientOptions = {
       __dirname,
       '..',
       '..',
+      '..',
       'proto',
       'files',
       'files_service.proto',

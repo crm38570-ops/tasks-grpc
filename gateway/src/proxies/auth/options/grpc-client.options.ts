@@ -12,6 +12,7 @@ export const authGrpcClientOptions = {
       __dirname,
       '..',
       '..',
+      '..',
       'proto',
       'auth',
       'auth_service.proto',
