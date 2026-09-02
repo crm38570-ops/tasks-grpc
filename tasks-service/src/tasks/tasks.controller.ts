@@ -1,97 +1,66 @@
 import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { TasksService } from './tasks.service';
-import { Task } from './task.entity';
-import { TaskStatus } from './enums/task-status.enum';
+import { RpcValidationPipe } from '../pipes/validation.pipe';
+import { UsePipes } from '@nestjs/common';
 import type {
-  CreateTaskRequest,
+  CreateTaskRequestDto,
+  DeleteTaskRequestDto,
+  GetTaskByIdRequestDto,
+  ListTasksRequestDto,
+  UpdateTaskStatusRequestDto,
+} from './dto';
+import type {
   CreateTaskResponse,
-  DeleteTaskRequest,
   DeleteTaskResponse,
-  GetTaskByIdRequest,
   GetTaskByIdResponse,
-  ListTasksRequest,
   ListTasksResponse,
-  TaskResponse,
-  UpdateTaskStatusRequest,
+  TasksServiceController,
   UpdateTaskStatusResponse,
 } from '../proto/tasks/generated/tasks_service';
-import { TasksServiceController } from '../proto/tasks/generated/tasks_service';
-import { TaskStatus as GrpcTaskStatus } from '../proto/tasks/generated/tasks_service';
-
-const toGrpcStatus = (status: TaskStatus): GrpcTaskStatus =>
-  GrpcTaskStatus[`TASK_STATUS_${status}` as keyof typeof GrpcTaskStatus];
-
-const toEntityStatus = (status: GrpcTaskStatus): TaskStatus =>
-  GrpcTaskStatus[status].replace('TASK_STATUS_', '') as TaskStatus;
-
-const toTaskResponse = (task: Task): TaskResponse => ({
-  id: task.id,
-  title: task.title,
-  description: task.description,
-  status: toGrpcStatus(task.status),
-});
 
 @Controller('tasks')
+@UsePipes(RpcValidationPipe)
 export class TasksController implements TasksServiceController {
   private readonly logger = new Logger('TasksController', { timestamp: true });
 
   constructor(private tasksService: TasksService) {}
 
   @GrpcMethod('TasksService', 'CreateTask')
-  createTask(request: CreateTaskRequest): Promise<CreateTaskResponse> {
-    const { title, description, userId } = request;
-    this.logger.verbose(`User "${userId}" creating a new task. Data: ${title}`);
-    return this.tasksService
-      .createTask({ title, description }, userId)
-      .then((task) => ({ task: toTaskResponse(task) }));
+  createTask(request: CreateTaskRequestDto): Promise<CreateTaskResponse> {
+    this.logger.verbose(`Create task request: userId=${request.userId}`);
+    return this.tasksService.createTask(request);
   }
 
   @GrpcMethod('TasksService', 'ListTasks')
-  async listTasks(request: ListTasksRequest): Promise<ListTasksResponse> {
-    const { status, searchQuery, userId } = request;
-    this.logger.verbose(
-      `User "${userId}" retrieving all tasks. Filters: status=${status ?? 'any'}, searchQuery=${searchQuery}`,
-    );
-    const tasks = await this.tasksService.getTasks(
-      {
-        status: status === undefined ? undefined : toEntityStatus(status),
-        searchQuery: searchQuery || undefined,
-      },
-      userId,
-    );
-    return { tasks: tasks.map(toTaskResponse) };
+  listTasks(request: ListTasksRequestDto): Promise<ListTasksResponse> {
+    this.logger.verbose(`List tasks request: userId=${request.userId}`);
+    return this.tasksService.listTasks(request);
   }
 
   @GrpcMethod('TasksService', 'GetTaskById')
-  async getTaskById(request: GetTaskByIdRequest): Promise<GetTaskByIdResponse> {
-    const { id, userId } = request;
-    this.logger.verbose(`User "${userId}" retrieving task with ID "${id}"`);
-    const task = await this.tasksService.getTaskById(id, userId);
-    return { task: toTaskResponse(task) };
+  getTaskById(request: GetTaskByIdRequestDto): Promise<GetTaskByIdResponse> {
+    this.logger.verbose(
+      `Get task request: taskId=${request.id}, userId=${request.userId}`,
+    );
+    return this.tasksService.getTaskById(request);
   }
 
   @GrpcMethod('TasksService', 'DeleteTask')
-  async deleteTask(request: DeleteTaskRequest): Promise<DeleteTaskResponse> {
-    const { id, userId } = request;
-    this.logger.verbose(`User "${userId}" deleting task with ID "${id}"`);
-    await this.tasksService.deleteTaskById({ id }, userId);
-    return {};
+  deleteTask(request: DeleteTaskRequestDto): Promise<DeleteTaskResponse> {
+    this.logger.verbose(
+      `Delete task request: taskId=${request.id}, userId=${request.userId}`,
+    );
+    return this.tasksService.deleteTask(request);
   }
 
   @GrpcMethod('TasksService', 'UpdateTaskStatus')
-  async updateTaskStatus(
-    request: UpdateTaskStatusRequest,
+  updateTaskStatus(
+    request: UpdateTaskStatusRequestDto,
   ): Promise<UpdateTaskStatusResponse> {
-    const { id, status, userId } = request;
     this.logger.verbose(
-      `User "${userId}" updating task "${id}" status to "${status}"`,
+      `Update task status request: taskId=${request.id}, userId=${request.userId}`,
     );
-    const task = await this.tasksService.updateTaskStatus(
-      id,
-      toEntityStatus(status),
-      userId,
-    );
-    return { task: toTaskResponse(task) };
+    return this.tasksService.updateTaskStatus(request);
   }
 }

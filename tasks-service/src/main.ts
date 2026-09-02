@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MicroserviceOptions } from '@nestjs/microservices';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import microserviceOptions from './microservice-options';
 
 async function bootstrap() {
@@ -13,7 +13,7 @@ async function bootstrap() {
     microserviceOptions,
   );
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.enableShutdownHooks();
 
   await app.listen();
   logger.log(`Application started: transport=grpc, address=0.0.0.0:${port}`);
