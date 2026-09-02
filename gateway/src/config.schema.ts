@@ -9,4 +9,6 @@ export const configValidationSchema = Joi.object({
 
   JWT_SECRET: Joi.string().required(),
   CORS_ORIGINS: Joi.string().required(),
+
+  MAX_UPLOAD_SIZE: Joi.number().required(),
 });
