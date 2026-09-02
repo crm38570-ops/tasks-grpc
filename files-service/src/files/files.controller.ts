@@ -4,10 +4,10 @@ import type {
   ListFilesResponse,
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
-import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
+import { GrpcMethod, GrpcStreamCall, RpcException } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
+import { Readable } from 'node:stream';
 import { FilesService } from './files.service';
-import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { ListFilesRequestDto } from '../dto/list-files.request.dto';
 import { DeleteFileRequestDto } from '../dto/delete-file.request.dto';
 import { DownloadFileRequestDto } from '../dto/download-file.request.dto';
@@ -23,12 +23,16 @@ export class FilesController {
     void this.logger;
   }
 
-  @GrpcStreamMethod('FilesService', 'UploadFile')
-  async saveFile(
-    uploadFileRequest$: Observable<UploadFileRequestDto>,
-  ): Promise<UploadFileResponse> {
-    this.logger.verbose('Upload request received');
-    return this.filesService.saveFile(uploadFileRequest$);
+  @GrpcStreamCall('FilesService', 'UploadFile')
+  saveFile(
+    request: Readable,
+    callback: (err: unknown, res?: UploadFileResponse) => void,
+  ): void {
+    this.filesService.saveFile(request).then(
+      (res) => callback(null, res),
+      (err: unknown) =>
+        callback(err instanceof RpcException ? err.getError() : err),
+    );
   }
 
   @GrpcMethod('FilesService', 'ListFiles')

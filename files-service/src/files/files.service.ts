@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
 import fs, { createWriteStream } from 'node:fs';
+import { Readable } from 'node:stream';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
@@ -9,7 +10,7 @@ import {
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
 import { join } from 'node:path';
-import { catchError, concat, defer, from, map, Observable, of } from 'rxjs';
+import { catchError, concat, defer, from, map, of } from 'rxjs';
 import { status } from '@grpc/grpc-js';
 import { FileEntity } from './file.entity';
 import { validateUploadFileContent } from './services/validate.upload-file.content';
@@ -19,7 +20,6 @@ import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { validateUploadFileRequest } from './services/validate.upload-file.request';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { eachValueFrom } from 'rxjs-for-await';
 import { TaskOwnershipService } from './tasks-internal/task-ownership.service';
 
 @Injectable()
@@ -46,9 +46,7 @@ export class FilesService {
     }
   }
 
-  async saveFile(
-    uploadFileRequest$: Observable<UploadFileRequestDto>,
-  ): Promise<UploadFileResponse> {
+  async saveFile(uploadFileRequest: Readable): Promise<UploadFileResponse> {
     const fileId = randomUUID();
     const filePath = join(this.FILE_DIR, fileId);
     const writeStream = createWriteStream(filePath);
@@ -57,7 +55,8 @@ export class FilesService {
     let firstMessage: UploadFileRequestDto | undefined;
 
     try {
-      for await (const message of eachValueFrom(uploadFileRequest$)) {
+      for await (const raw of uploadFileRequest) {
+        const message = raw as UploadFileRequestDto;
         if (!firstMessage) {
           validateUploadFileRequest(message);
           validateFileName(message.metadata.fileName, this.logger);

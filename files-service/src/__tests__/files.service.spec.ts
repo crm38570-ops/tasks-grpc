@@ -107,13 +107,13 @@ describe('FilesService', () => {
 
     try {
       const result = await service.saveFile(
-        of<UploadFileRequestDto>(
+        Readable.from<UploadFileRequestDto>([
           { content: new Uint8Array(0), metadata } as UploadFileRequestDto,
           {
             content: new Uint8Array([1, 2, 3]),
             metadata: undefined,
           } as UploadFileRequestDto,
-        ),
+        ]),
       );
 
       expect(result.fileId).toEqual(expect.any(String));
@@ -147,7 +147,7 @@ describe('FilesService', () => {
       let caughtError: unknown;
 
       try {
-        await service.saveFile(of<UploadFileRequestDto>());
+        await service.saveFile(Readable.from<UploadFileRequestDto>([]));
       } catch (err: unknown) {
         caughtError = err;
       }
@@ -182,16 +182,18 @@ describe('FilesService', () => {
 
     try {
       await service.saveFile(
-        of<UploadFileRequestDto>({
-          content: new Uint8Array([1, 2, 3]),
-          metadata: {
-            fileName: 'cat.png',
-            mimeType: 'image/png',
-            size: 0,
-            taskId: '11111111-1111-4111-8111-111111111111',
-            userId: '22222222-2222-4222-8222-222222222222',
-          },
-        } as UploadFileRequestDto),
+        Readable.from<UploadFileRequestDto>([
+          {
+            content: new Uint8Array([1, 2, 3]),
+            metadata: {
+              fileName: 'cat.png',
+              mimeType: 'image/png',
+              size: 0,
+              taskId: '11111111-1111-4111-8111-111111111111',
+              userId: '22222222-2222-4222-8222-222222222222',
+            },
+          } as UploadFileRequestDto,
+        ]),
       );
 
       expect(mockRepo.saveFile).toHaveBeenCalledWith({
@@ -230,16 +232,18 @@ describe('FilesService', () => {
 
       try {
         await service.saveFile(
-          of<UploadFileRequestDto>({
-            content: new Uint8Array([1, 2, 3]),
-            metadata: {
-              fileName: 'cat.png',
-              mimeType: 'image/png',
-              size: 0,
-              taskId: '11111111-1111-4111-8111-111111111111',
-              userId: '22222222-2222-4222-8222-222222222222',
-            },
-          } as UploadFileRequestDto),
+          Readable.from<UploadFileRequestDto>([
+            {
+              content: new Uint8Array([1, 2, 3]),
+              metadata: {
+                fileName: 'cat.png',
+                mimeType: 'image/png',
+                size: 0,
+                taskId: '11111111-1111-4111-8111-111111111111',
+                userId: '22222222-2222-4222-8222-222222222222',
+              },
+            } as UploadFileRequestDto,
+          ]),
         );
       } catch (err: unknown) {
         caughtError = err;
@@ -272,16 +276,18 @@ describe('FilesService', () => {
 
       try {
         await service.saveFile(
-          of<UploadFileRequestDto>({
-            content: new Uint8Array(0),
-            metadata: {
-              fileName: 'cat.png',
-              mimeType: 'image/png',
-              size: 3,
-              taskId: 'not-a-uuid',
-              userId: '22222222-2222-4222-8222-222222222222',
-            },
-          } as UploadFileRequestDto),
+          Readable.from<UploadFileRequestDto>([
+            {
+              content: new Uint8Array(0),
+              metadata: {
+                fileName: 'cat.png',
+                mimeType: 'image/png',
+                size: 3,
+                taskId: 'not-a-uuid',
+                userId: '22222222-2222-4222-8222-222222222222',
+              },
+            } as UploadFileRequestDto,
+          ]),
         );
       } catch (err: unknown) {
         caughtError = err;
