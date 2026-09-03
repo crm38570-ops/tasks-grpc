@@ -3,7 +3,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  NotFoundException,
   OnModuleInit,
   PayloadTooLargeException,
   StreamableFile,
@@ -20,15 +19,7 @@ import type {
 import busboy from 'busboy';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import {
-  catchError,
-  firstValueFrom,
-  map,
-  skip,
-  Observable,
-  ReplaySubject,
-  throwError,
-} from 'rxjs';
+import { firstValueFrom, map, skip, Observable, ReplaySubject } from 'rxjs';
 import { Readable } from 'node:stream';
 import { eachValueFrom } from 'rxjs-for-await';
 
@@ -172,14 +163,7 @@ export class FilesProxyService implements OnModuleInit {
 
     const responseSubject = new ReplaySubject<DownloadFileResponse>(1);
 
-    const download$ = this.filesService.downloadFile({ fileId, userId }).pipe(
-      catchError((error: unknown) => {
-        if ((error as { code?: number }).code === 5) {
-          return throwError(() => new NotFoundException('Файл не найден'));
-        }
-        return throwError(() => error);
-      }),
-    );
+    const download$ = this.filesService.downloadFile({ fileId, userId });
 
     const subscription = download$.subscribe(responseSubject);
 
