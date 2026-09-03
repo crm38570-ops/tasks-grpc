@@ -70,6 +70,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS}
       MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
+      GRPC_TIMEOUT_MS: ${GRPC_TIMEOUT_MS}
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:

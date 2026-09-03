@@ -17,7 +17,7 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "cross-env STAGE=dev PORT=3000 AUTH_GRPC_URL=localhost:50051 TASKS_GRPC_URL=localhost:50052 FILES_GRPC_URL=localhost:50051 JWT_SECRET=test-secret CORS_ORIGINS=http://localhost:3000 MAX_UPLOAD_SIZE=1048576 NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
+    "test:e2e": "cross-env STAGE=dev PORT=3000 AUTH_GRPC_URL=localhost:50051 TASKS_GRPC_URL=localhost:50052 FILES_GRPC_URL=localhost:50051 JWT_SECRET=test-secret CORS_ORIGINS=http://localhost:3000 MAX_UPLOAD_SIZE=1048576 GRPC_TIMEOUT_MS=5000 NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
     "proto:gen": "node scripts/generate-protos.js"
   },
   "dependencies": {

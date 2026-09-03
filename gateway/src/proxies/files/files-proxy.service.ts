@@ -23,6 +23,7 @@ import { validateSync } from 'class-validator';
 import { firstValueFrom, map, skip, Observable, ReplaySubject } from 'rxjs';
 import { Readable } from 'node:stream';
 import { eachValueFrom } from 'rxjs-for-await';
+import { withDeadline } from '../shared/with-deadline';
 
 @Injectable()
 export class FilesProxyService implements OnModuleInit {
@@ -30,6 +31,7 @@ export class FilesProxyService implements OnModuleInit {
     timestamp: true,
   });
   private readonly maxUploadSize: number;
+  private readonly grpcTimeoutMs: number;
   private filesService!: FilesServiceClient;
 
   constructor(
@@ -37,6 +39,7 @@ export class FilesProxyService implements OnModuleInit {
     configService: ConfigService,
   ) {
     this.maxUploadSize = configService.getOrThrow<number>('MAX_UPLOAD_SIZE');
+    this.grpcTimeoutMs = configService.getOrThrow<number>('GRPC_TIMEOUT_MS');
   }
 
   onModuleInit() {
@@ -154,7 +157,12 @@ export class FilesProxyService implements OnModuleInit {
       `List files request: userId=${userId}, taskId=${taskId}`,
     );
 
-    return firstValueFrom(this.filesService.listFiles({ taskId, userId }));
+    return firstValueFrom(
+      withDeadline(
+        this.filesService.listFiles({ taskId, userId }),
+        this.grpcTimeoutMs,
+      ),
+    );
   }
 
   async downloadFile(
@@ -176,7 +184,9 @@ export class FilesProxyService implements OnModuleInit {
 
     request.once('close', () => subscription.unsubscribe());
 
-    const firstResponse = await firstValueFrom(responseSubject);
+    const firstResponse = await firstValueFrom(
+      withDeadline(responseSubject, this.grpcTimeoutMs),
+    );
 
     if (!firstResponse.metadata) {
       subscription.unsubscribe();
@@ -209,6 +219,11 @@ export class FilesProxyService implements OnModuleInit {
       `Delete file request: fileId=${fileId}, taskId=${taskId}, userId=${userId}`,
     );
 
-    return firstValueFrom(this.filesService.deleteFile({ fileId, userId }));
+    return firstValueFrom(
+      withDeadline(
+        this.filesService.deleteFile({ fileId, userId }),
+        this.grpcTimeoutMs,
+      ),
+    );
   }
 }
