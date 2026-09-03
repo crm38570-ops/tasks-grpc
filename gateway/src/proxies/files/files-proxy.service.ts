@@ -221,7 +221,7 @@ export class FilesProxyService implements OnModuleInit {
 
     return firstValueFrom(
       withDeadline(
-        this.filesService.deleteFile({ fileId, userId }),
+        this.filesService.deleteFile({ fileId, userId, taskId }),
         this.grpcTimeoutMs,
       ),
     );
