@@ -36,7 +36,7 @@ export class MigrateLegacyUsers1740000001000 implements MigrationInterface {
         await queryRunner.query(
           `INSERT INTO "user" ("id", "username", "password")
            VALUES ($1, $2, $3)
-           ON CONFLICT ("id") DO NOTHING`,
+           ON CONFLICT DO NOTHING`,
           [user.id, user.username, user.password],
         );
       }

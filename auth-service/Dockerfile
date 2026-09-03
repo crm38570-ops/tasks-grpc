@@ -25,4 +25,4 @@ COPY --from=build /app/proto /app/proto
 USER node
 
 EXPOSE 3001
-CMD ["sh", "-c", "yarn migration:run:prod && node dist/main.js"]
+CMD ["sh", "-c", "yarn typeorm:run:prod && node dist/main.js"]
