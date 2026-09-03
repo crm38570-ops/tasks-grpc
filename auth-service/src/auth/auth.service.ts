@@ -1,4 +1,6 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
 import { UsersRepository } from '../user/users.repository';
 import { AuthCredentialsDto, UserResponseDto } from './dto';
 import * as bcrypt from 'bcrypt';
@@ -35,7 +37,10 @@ export class AuthService {
 
     if (!(user && (await bcrypt.compare(password, user.password)))) {
       this.logger.warn(`Failed sign-in attempt for user "${username}"`);
-      throw new UnauthorizedException('Please check your login credentials');
+      throw new RpcException({
+        code: status.UNAUTHENTICATED,
+        message: 'Please check your login credentials',
+      });
     }
 
     const payload: JwtPayload = { username, userId: user.id };
