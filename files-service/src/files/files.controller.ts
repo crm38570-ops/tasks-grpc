@@ -52,7 +52,7 @@ export class FilesController {
   @GrpcMethod('FilesService', 'DeleteFile')
   async deleteFile(deleteFileRequest: DeleteFileRequestDto): Promise<void> {
     this.logger.verbose(
-      `Delete file request received: fileId=${deleteFileRequest.fileId}, userId=${deleteFileRequest.userId}`,
+      `Delete file request received: fileId=${deleteFileRequest.fileId}, taskId=${deleteFileRequest.taskId}, userId=${deleteFileRequest.userId}`,
     );
     return this.filesService.deleteFile(deleteFileRequest);
   }

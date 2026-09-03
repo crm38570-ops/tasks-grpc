@@ -8,4 +8,8 @@ export class DeleteFileRequestDto {
   @IsString()
   @IsUUID('4')
   userId: string;
+
+  @IsString()
+  @IsUUID('4')
+  taskId: string;
 }

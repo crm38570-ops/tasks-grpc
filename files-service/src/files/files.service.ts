@@ -139,12 +139,21 @@ export class FilesService {
   }
 
   async deleteFile(deleteFileRequest: DeleteFileRequest) {
-    const { fileId, userId } = deleteFileRequest;
+    const { fileId, userId, taskId } = deleteFileRequest;
 
     try {
       const file = await this.filesRepository.getFile(fileId);
 
-      validateFileUser({ file, userId });
+      const ownedFile = validateFileUser({ file, userId });
+
+      await this.taskOwnershipService.validateTaskOwner(taskId, userId);
+
+      if (ownedFile.taskId !== taskId) {
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: 'Файл не найден',
+        });
+      }
 
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 

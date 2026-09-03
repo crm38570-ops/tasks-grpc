@@ -346,7 +346,9 @@ describe('FilesService', () => {
     mockRepo.getFile.mockResolvedValue({
       fileId: mockFileUserId.fileId,
       userId: mockFileUserId.userId,
+      taskId: mockFileUserId.taskId,
     } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockResolvedValue();
     mockRepo.deleteFile.mockResolvedValue({ affected: 1 } as DeleteResult);
 
     const unlinkSpy = jest
@@ -357,6 +359,10 @@ describe('FilesService', () => {
       await expect(service.deleteFile(mockFileUserId)).resolves.toBeUndefined();
 
       expect(mockRepo.getFile).toHaveBeenCalledWith(mockFileUserId.fileId);
+      expect(mockTaskOwnership.validateTaskOwner).toHaveBeenCalledWith(
+        mockFileUserId.taskId,
+        mockFileUserId.userId,
+      );
       expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
       expect(unlinkSpy).toHaveBeenCalled();
 
@@ -368,6 +374,71 @@ describe('FilesService', () => {
     }
   });
 
+  it(`deleteFile выбрасывает RpcException с кодом 5, если файл прикреплён к другой задаче`, async () => {
+    mockRepo.getFile.mockResolvedValue({
+      fileId: mockFileUserId.fileId,
+      userId: mockFileUserId.userId,
+      taskId: 'другая задача',
+    } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockResolvedValue();
+
+    const unlinkSpy = jest.spyOn(fs.promises, 'unlink');
+
+    let caughtError: unknown;
+
+    try {
+      await service.deleteFile(mockFileUserId);
+    } catch (err: unknown) {
+      caughtError = err;
+    } finally {
+      unlinkSpy.mockRestore();
+    }
+
+    expect(caughtError).toBeInstanceOf(RpcException);
+    expect((caughtError as RpcException).getError()).toEqual({
+      code: 5,
+      message: 'Файл не найден',
+    });
+
+    expect(mockRepo.getFile).toHaveBeenCalledWith(mockFileUserId.fileId);
+    expect(mockTaskOwnership.validateTaskOwner).toHaveBeenCalledWith(
+      mockFileUserId.taskId,
+      mockFileUserId.userId,
+    );
+    expect(mockRepo.deleteFile).not.toHaveBeenCalled();
+    expect(unlinkSpy).not.toHaveBeenCalled();
+  });
+
+  it(`deleteFile пробрасывает ошибку, если задача не принадлежит пользователю`, async () => {
+    const error = new RpcException({
+      code: 7,
+      message: 'Задача не найдена или недоступна пользователю',
+    });
+
+    mockRepo.getFile.mockResolvedValue({
+      fileId: mockFileUserId.fileId,
+      userId: mockFileUserId.userId,
+      taskId: mockFileUserId.taskId,
+    } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockRejectedValue(error);
+
+    const unlinkSpy = jest.spyOn(fs.promises, 'unlink');
+
+    let caughtError: unknown;
+
+    try {
+      await service.deleteFile(mockFileUserId);
+    } catch (err: unknown) {
+      caughtError = err;
+    } finally {
+      unlinkSpy.mockRestore();
+    }
+
+    expect(caughtError).toBe(error);
+    expect(mockRepo.deleteFile).not.toHaveBeenCalled();
+    expect(unlinkSpy).not.toHaveBeenCalled();
+  });
+
   it('deleteFile не удаляет файл с диска, если БД вернула ошибку', async () => {
     const error = new RpcException({
       code: 5,
@@ -377,7 +448,9 @@ describe('FilesService', () => {
     mockRepo.getFile.mockResolvedValue({
       fileId: mockFileUserId.fileId,
       userId: mockFileUserId.userId,
+      taskId: mockFileUserId.taskId,
     } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockResolvedValue();
     mockRepo.deleteFile.mockRejectedValue(error);
 
     const unlinkSpy = jest
@@ -414,7 +487,9 @@ describe('FilesService', () => {
     mockRepo.getFile.mockResolvedValue({
       fileId: mockFileUserId.fileId,
       userId: mockFileUserId.userId,
+      taskId: mockFileUserId.taskId,
     } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockResolvedValue();
     mockRepo.deleteFile.mockRejectedValue(error);
 
     const unlinkSpy = jest
@@ -442,7 +517,9 @@ describe('FilesService', () => {
     mockRepo.getFile.mockResolvedValue({
       fileId: mockFileUserId.fileId,
       userId: mockFileUserId.userId,
+      taskId: mockFileUserId.taskId,
     } as FileEntity);
+    mockTaskOwnership.validateTaskOwner.mockResolvedValue();
     mockRepo.deleteFile.mockResolvedValue({ affected: 0 } as DeleteResult);
 
     const unlinkSpy = jest
