@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { configValidationSchema } from './config.chema';
+import { configValidationSchema } from './config.schema';
 import { getTypeOrmConfig } from './database/typeorm.config';
 
 @Module({
