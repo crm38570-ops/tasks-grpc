@@ -58,8 +58,8 @@ services:
 
   gateway:
     build:
-      context: ./gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: gateway/Dockerfile
     restart: unless-stopped
     environment:
       STAGE: dev
