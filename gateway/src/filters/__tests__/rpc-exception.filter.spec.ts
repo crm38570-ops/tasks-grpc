@@ -58,4 +58,26 @@ describe('RpcExceptionFilter', () => {
       InternalServerErrorException,
     );
   });
+
+  it.each([
+    [status.INTERNAL, InternalServerErrorException],
+    [status.UNKNOWN, InternalServerErrorException],
+    [status.DEADLINE_EXCEEDED, GatewayTimeoutException],
+    [status.UNAVAILABLE, ServiceUnavailableException],
+  ] as [number, new (...args: unknown[]) => HttpException][])(
+    'не пробрасывает внутренний текст ошибки для gRPC-кода %i',
+    (code, httpError) => {
+      const leaked =
+        'gRPC call did not complete within 5000ms; failed to connect to all addresses';
+      let caught: Error | undefined;
+      try {
+        filter.catch(new RpcException({ code, message: leaked }));
+      } catch (error) {
+        caught = error as Error;
+      }
+
+      expect(caught).toBeInstanceOf(httpError);
+      expect((caught as Error).message).not.toBe(leaked);
+    },
+  );
 });
