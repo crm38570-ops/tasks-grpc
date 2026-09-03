@@ -20,7 +20,13 @@ async function bootstrap() {
 
   app.enableCors({ origin: corsOrigins });
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   app.useBodyParser('json', {
     limit: '1mb',
