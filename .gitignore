@@ -11,3 +11,6 @@ test/downloaded-*.jpg
 # локальный блокнот, не коммитится
 TASKS.md
 .commandcode
+
+# артефакты инкрементальной сборки TS
+*.tsbuildinfo

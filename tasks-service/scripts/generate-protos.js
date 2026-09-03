@@ -34,7 +34,13 @@ function findProtos(dir, acc = []) {
 
 for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
   const moduleDir = path.dirname(proto);
-  const outDir = path.join(serviceRoot, 'src', 'proto', 'files', 'generated');
+  const outDir = path.join(
+    serviceRoot,
+    'src',
+    'proto',
+    path.basename(moduleDir),
+    'generated',
+  );
   fs.mkdirSync(outDir, { recursive: true });
   execFileSync(
     protoc,
@@ -48,6 +54,10 @@ for (const proto of findProtos(path.join(repositoryRoot, 'proto'))) {
     ],
     { stdio: 'inherit' },
   );
+
+  const protoDest = path.join(serviceRoot, 'src', 'proto', path.basename(moduleDir));
+  fs.mkdirSync(protoDest, { recursive: true });
+  fs.copyFileSync(proto, path.join(protoDest, path.basename(proto)));
   console.log(
     `generated: ${path.relative(repositoryRoot, proto)} -> ${path.relative(serviceRoot, outDir)}`,
   );
