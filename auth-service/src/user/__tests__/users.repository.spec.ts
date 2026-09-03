@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import {
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
 import { DataSource, QueryFailedError } from 'typeorm';
 
 jest.mock('bcrypt', () => ({
@@ -58,7 +56,7 @@ describe('UsersRepository', () => {
     expect(saveSpy).toHaveBeenCalledWith(createdUser);
   });
 
-  it('createUser преобразует ошибку уникальности username в ConflictException', async () => {
+  it('createUser преобразует ошибку уникальности username в RpcException ALREADY_EXISTS', async () => {
     const error = new QueryFailedError('INSERT', [], new Error('duplicate'));
     (
       error as QueryFailedError & { driverError: { code: string } }
@@ -68,12 +66,21 @@ describe('UsersRepository', () => {
     jest.spyOn(repository, 'create').mockReturnValue(createdUser);
     jest.spyOn(repository, 'save').mockRejectedValue(error);
 
-    await expect(repository.createUser(credentials)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    let caughtError: RpcException | undefined;
+    try {
+      await repository.createUser(credentials);
+    } catch (e) {
+      caughtError = e as RpcException;
+    }
+
+    expect(caughtError).toBeInstanceOf(RpcException);
+    expect(caughtError?.getError()).toEqual({
+      code: status.ALREADY_EXISTS,
+      message: 'Username already exists',
+    });
   });
 
-  it('createUser преобразует прочую ошибку TypeORM в InternalServerErrorException', async () => {
+  it('createUser преобразует прочую ошибку TypeORM в RpcException INTERNAL', async () => {
     const error = new QueryFailedError('INSERT', [], new Error('database'));
     (
       error as QueryFailedError & { driverError: { code: string } }
@@ -83,9 +90,18 @@ describe('UsersRepository', () => {
     jest.spyOn(repository, 'create').mockReturnValue(createdUser);
     jest.spyOn(repository, 'save').mockRejectedValue(error);
 
-    await expect(repository.createUser(credentials)).rejects.toBeInstanceOf(
-      InternalServerErrorException,
-    );
+    let caughtError: RpcException | undefined;
+    try {
+      await repository.createUser(credentials);
+    } catch (e) {
+      caughtError = e as RpcException;
+    }
+
+    expect(caughtError).toBeInstanceOf(RpcException);
+    expect(caughtError?.getError()).toEqual({
+      code: status.INTERNAL,
+      message: 'Internal server error',
+    });
   });
 
   it('createUser пробрасывает неизвестную ошибку без изменений', async () => {
