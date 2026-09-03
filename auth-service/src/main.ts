@@ -6,7 +6,7 @@ import microserviceOptions from './microservice-options';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
-  const port = Number(process.env.PORT ?? 3001);
+  const port = Number(process.env.GRPC_PORT ?? 50051);
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,

@@ -17,8 +17,7 @@ describe('AuthCredentialsDto', () => {
   it.each([
     ['a', 'password1', 'username minimum length'],
     ['A'.repeat(41), 'password1', 'username maximum length'],
-    ['testuser', 'password1', 'username uppercase letter'],
-    ['TESTUSER', 'password1', 'username lowercase letter'],
+    ['123', 'password1', 'username lowercase letter'],
     ['Test.User', 'password1', 'username dot'],
     ['Test\nUser', 'password1', 'username newline'],
     ['TestUser', 'password', 'password digit or special character'],

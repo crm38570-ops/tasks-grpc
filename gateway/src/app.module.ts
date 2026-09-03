@@ -7,7 +7,6 @@ import { TasksProxyModule } from './proxies/tasks/tasks-proxy.module';
 import { FilesProxyModule } from './proxies/files/files-proxy.module';
 import { configValidationSchema } from './config.schema';
 import { APP_FILTER } from '@nestjs/core';
-import { AxiosExceptionFilter } from './filters/axios-exception.filter';
 import { RpcExceptionFilter } from './filters/rpc-exception.filter';
 
 @Module({
@@ -29,9 +28,6 @@ import { RpcExceptionFilter } from './filters/rpc-exception.filter';
     TasksProxyModule,
     FilesProxyModule,
   ],
-  providers: [
-    { provide: APP_FILTER, useClass: AxiosExceptionFilter },
-    { provide: APP_FILTER, useClass: RpcExceptionFilter },
-  ],
+  providers: [{ provide: APP_FILTER, useClass: RpcExceptionFilter }],
 })
 export class AppModule {}

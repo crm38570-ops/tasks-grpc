@@ -5,7 +5,6 @@ export class AuthCredentialsDto implements SignUpRequest {
   @IsString()
   @MinLength(2)
   @MaxLength(40)
-  @Matches(/[A-Z]/, { message: 'username must contain an uppercase letter' })
   @Matches(/[a-z]/, { message: 'username must contain a lowercase letter' })
   @Matches(/^[^.\n]+$/, {
     message: 'username must not contain dots or newlines',

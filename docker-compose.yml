@@ -21,12 +21,14 @@ services:
 
   auth-service:
     build:
-      context: ./auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: auth-service/Dockerfile
     restart: unless-stopped
     environment:
       STAGE: dev
       PORT: ${AUTH_PORT}
+      GRPC_PORT: ${AUTH_GRPC_PORT}
+      PROTO_PATH: /app/proto/auth/auth_service.proto
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
@@ -48,7 +50,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('node:http').get('http://127.0.0.1:3001/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+          "require('node:net').connect(${AUTH_GRPC_PORT}, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -56,17 +58,18 @@ services:
 
   gateway:
     build:
-      context: ./gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: gateway/Dockerfile
     restart: unless-stopped
     environment:
       STAGE: dev
       PORT: ${GATEWAY_PORT}
-      AUTH_SERVICE_URL: http://auth-service:${AUTH_PORT}
-      TASKS_SERVICE_URL: http://tasks-service:${TASKS_PORT}
-      FILES_SERVICE_URL: http://tasks-service:${TASKS_PORT}
+      AUTH_GRPC_URL: auth-service:${AUTH_GRPC_PORT}
+      TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
+      FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
@@ -95,6 +98,7 @@ services:
       STAGE: dev
       GRPC_PORT: ${FILES_GRPC_PORT}
       PROTO_PATH: /app/proto/files/files_service.proto
+      TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
@@ -112,7 +116,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('node:net').connect(50051, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))",
+          "require('node:net').connect(${FILES_GRPC_PORT}, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -126,6 +130,7 @@ services:
     environment:
       STAGE: dev
       PORT: ${TASKS_PORT}
+      GRPC_PORT: ${TASKS_GRPC_PORT}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
@@ -134,7 +139,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
-      PROTO_PATH: /app/proto/files/files_service.proto
+      PROTO_ROOT: /app/proto
     depends_on:
       postgres:
         condition: service_healthy
@@ -146,7 +151,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('node:http').get('http://127.0.0.1:3002/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+          "require('node:net').connect(${TASKS_GRPC_PORT}, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package tasks_internal;
+
+message ValidateTaskOwnerRequest {
+  string task_id = 1;
+  string user_id = 2;
+}
+
+message ValidateTaskOwnerResponse {
+  bool is_owner = 1;
+}
+
+service TasksInternalService {
+  rpc ValidateTaskOwner (ValidateTaskOwnerRequest) returns (ValidateTaskOwnerResponse);
+}
