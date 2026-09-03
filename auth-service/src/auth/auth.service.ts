@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { UsersRepository } from '../user/users.repository';
@@ -11,11 +12,16 @@ import { JwtAccessToken } from './types/jwt-access-token.interface';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger('AuthService', { timestamp: true });
+  private readonly dummyBcryptHash: string;
 
   constructor(
     private usersRepository: UsersRepository,
     private jwtService: JwtService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.dummyBcryptHash =
+      configService.getOrThrow<string>('DUMMY_BCRYPT_HASH');
+  }
 
   async signUp(
     authCredentialsDto: AuthCredentialsDto,
@@ -35,7 +41,12 @@ export class AuthService {
     this.logger.log(`Signing in user "${username}"`);
     const user = await this.usersRepository.findOne({ where: { username } });
 
-    if (!(user && (await bcrypt.compare(password, user.password)))) {
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user?.password ?? this.dummyBcryptHash,
+    );
+
+    if (!(user && isPasswordValid)) {
       this.logger.warn(`Failed sign-in attempt for user "${username}"`);
       throw new RpcException({
         code: status.UNAUTHENTICATED,

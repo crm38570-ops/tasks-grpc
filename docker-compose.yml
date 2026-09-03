@@ -26,7 +26,6 @@ services:
     restart: unless-stopped
     environment:
       STAGE: dev
-      PORT: ${AUTH_PORT}
       GRPC_PORT: ${AUTH_GRPC_PORT}
       PROTO_PATH: /app/proto/auth/auth_service.proto
       DB_HOST: postgres
@@ -41,6 +40,7 @@ services:
       LEGACY_DB_DATABASE: ${TASKS_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      DUMMY_BCRYPT_HASH: ${DUMMY_BCRYPT_HASH}
     depends_on:
       postgres:
         condition: service_healthy
