@@ -1,8 +1,8 @@
 import { Type } from 'class-transformer';
 import {
   IsDefined,
+  IsInt,
   IsMimeType,
-  IsNumber,
   IsString,
   IsUUID,
   Min,
@@ -17,8 +17,8 @@ export class FileMetadata {
   @IsMimeType()
   mimeType: string;
 
-  @IsNumber()
-  @Min(1)
+  @IsInt()
+  @Min(0)
   size: number;
 
   @IsString()
