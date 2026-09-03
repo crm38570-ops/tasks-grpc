@@ -7,6 +7,8 @@ RUN yarn install --frozen-lockfile
 
 COPY tasks-service/ .
 COPY proto/ /app/proto/
+
+RUN yarn proto:gen
 RUN yarn build
 
 # Stage 2: production
