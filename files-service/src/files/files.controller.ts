@@ -4,7 +4,11 @@ import type {
   ListFilesResponse,
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
-import { GrpcMethod, GrpcStreamCall, RpcException } from '@nestjs/microservices';
+import {
+  GrpcMethod,
+  GrpcStreamCall,
+  RpcException,
+} from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { Readable } from 'node:stream';
 import { FilesService } from './files.service';
