@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth.service';
 import { AuthCredentialsDto } from '../dto';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { UsersRepository } from '../../user/users.repository';
 
 const credentials: AuthCredentialsDto = {
@@ -32,6 +33,14 @@ const jwtService = {
   sign: jest.fn(),
 };
 
+const configService = {
+  getOrThrow: jest.fn((key: string) => {
+    if (key === 'DUMMY_BCRYPT_HASH')
+      return '$2b$10$dummyhashdummyhashdummyhashdummyhashdummyhashdumm';
+    return undefined;
+  }),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -40,6 +49,7 @@ describe('AuthService', () => {
     service = new AuthService(
       usersRepository as unknown as UsersRepository,
       jwtService as unknown as JwtService,
+      configService as unknown as ConfigService,
     );
   });
 
@@ -89,6 +99,10 @@ describe('AuthService', () => {
       code: status.UNAUTHENTICATED,
       message: 'Please check your login credentials',
     });
+    expect(bcrypt.compare).toHaveBeenCalledWith(
+      credentials.password,
+      configService.getOrThrow('DUMMY_BCRYPT_HASH'),
+    );
     expect(jwtService.sign).not.toHaveBeenCalled();
   });
 
