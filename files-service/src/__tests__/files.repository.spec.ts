@@ -100,12 +100,18 @@ describe(`FilesRepository`, () => {
     expect(getOne).toHaveBeenCalled();
   });
 
-  it(`getListFiles фильтрует файлы по taskId и userId`, async () => {
+  it(`getListFiles возвращает метаданные файлов с uploadedAt в ISO`, async () => {
+    const uploadedAt = new Date('2026-09-01T12:00:00.000Z');
     const files = [
       {
-        ...mockFileUserId,
-        ...mockTaskUserId,
-      } as FileEntity,
+        fileId: 'file-id',
+        fileName: 'file.txt',
+        mimeType: 'text/plain',
+        size: 12,
+        taskId: mockTaskUserId.taskId,
+        userId: mockTaskUserId.userId,
+        uploadedAt,
+      },
     ];
 
     const getMany = jest.fn().mockResolvedValue(files as never);
@@ -119,7 +125,16 @@ describe(`FilesRepository`, () => {
 
     const result = await repository.getListFiles(mockTaskUserId);
 
-    expect(result).toEqual(files);
+    expect(result).toEqual([
+      {
+        fileId: 'file-id',
+        fileName: 'file.txt',
+        mimeType: 'text/plain',
+        size: 12,
+        taskId: mockTaskUserId.taskId,
+        uploadedAt: uploadedAt.toISOString(),
+      },
+    ]);
     expect(where).toHaveBeenCalledWith(mockTaskUserId);
     expect(getMany).toHaveBeenCalled();
   });
