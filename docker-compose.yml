@@ -99,6 +99,7 @@ services:
       GRPC_PORT: ${FILES_GRPC_PORT}
       PROTO_PATH: /app/proto/files/files_service.proto
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
+      TASKS_GRPC_TIMEOUT_MS: ${TASKS_GRPC_TIMEOUT_MS}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
