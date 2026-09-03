@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FilesRepository } from './files.repository';
 import { RpcException } from '@nestjs/microservices';
 import fs, { createWriteStream } from 'node:fs';
@@ -25,22 +26,28 @@ import { TaskOwnershipService } from './tasks-internal/task-ownership.service';
 @Injectable()
 export class FilesService {
   private readonly logger = new Logger('FilesService', { timestamp: true });
-  private FILE_DIR: string;
 
   constructor(
     private readonly filesRepository: FilesRepository,
     private readonly taskOwnershipService: TaskOwnershipService,
-  ) {
-    this.FILE_DIR = process.env.FILE_DIR!;
+    private readonly configService: ConfigService,
+  ) {}
+
+  private get fileDir(): string {
+    return this.configService.getOrThrow<string>('FILE_DIR');
+  }
+
+  private get maxUploadSize(): number {
+    return this.configService.getOrThrow<number>('MAX_UPLOAD_SIZE');
   }
 
   async onModuleInit() {
     try {
-      await fs.promises.mkdir(this.FILE_DIR, { recursive: true });
+      await fs.promises.mkdir(this.fileDir, { recursive: true });
     } catch (err) {
       const stack = err instanceof Error ? err.stack : String(err);
       this.logger.error(
-        `Не удалось создать директорию ${this.FILE_DIR}: ${stack}`,
+        `Не удалось создать директорию ${this.fileDir}: ${stack}`,
       );
       throw err;
     }
@@ -48,7 +55,7 @@ export class FilesService {
 
   async saveFile(uploadFileRequest: Readable): Promise<UploadFileResponse> {
     const fileId = randomUUID();
-    const filePath = join(this.FILE_DIR, fileId);
+    const filePath = join(this.fileDir, fileId);
     const writeStream = createWriteStream(filePath);
 
     let totalBytes = 0;
@@ -70,6 +77,10 @@ export class FilesService {
 
         totalBytes += message.content.length;
 
+        if (message.content.length) {
+          validateUploadFileContent(totalBytes, this.maxUploadSize);
+        }
+
         if (!writeStream.write(message.content)) {
           await once(writeStream, 'drain');
         }
@@ -82,7 +93,7 @@ export class FilesService {
         });
       }
 
-      validateUploadFileContent(totalBytes);
+      validateUploadFileContent(totalBytes, this.maxUploadSize);
 
       await new Promise<void>((res, rej) =>
         writeStream.end((err?: Error | null) => (err ? rej(err) : res())),
@@ -135,10 +146,6 @@ export class FilesService {
 
       validateFileUser({ file, userId });
 
-      await fs.promises.unlink(join(this.FILE_DIR, fileId)).catch((err) => {
-        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-      });
-
       const result = await this.filesRepository.deleteFile(deleteFileRequest);
 
       if (!result.affected) {
@@ -148,6 +155,14 @@ export class FilesService {
 
         throw new RpcException({ code: status.NOT_FOUND, message });
       }
+
+      await fs.promises.unlink(join(this.fileDir, fileId)).catch((err) => {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+          this.logger.error(
+            `Запись удалена из БД, но файл не удалён с диска: fileId=${fileId}. StackTrace: ${err instanceof Error ? err.stack : String(err)}`,
+          );
+        }
+      });
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
@@ -187,17 +202,21 @@ export class FilesService {
     return defer(() => {
       this.logger.log(`Download stream opened: fileId=${fileId}`);
 
-      const { userId, ...fileMetadata } = file;
-      void userId;
+      const metadata = {
+        fileId: file.fileId,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        size: Number(file.size),
+        taskId: file.taskId,
+        uploadedAt: file.uploadedAt.toISOString(),
+      };
 
       return concat(
         of({
           chunk: new Uint8Array(),
-          metadata: {
-            ...fileMetadata,
-          },
+          metadata,
         }),
-        from(fs.createReadStream(join(this.FILE_DIR, fileId))).pipe(
+        from(fs.createReadStream(join(this.fileDir, fileId))).pipe(
           map((chunk: Buffer) => ({ chunk, metadata: undefined })),
           catchError((err) => {
             const stack = err instanceof Error ? err.stack : String(err);
