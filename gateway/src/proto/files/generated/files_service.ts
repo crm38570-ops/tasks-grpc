@@ -48,6 +48,7 @@ export interface ListFilesResponse {
 export interface DeleteFileRequest {
   fileId: string;
   userId: string;
+  taskId: string;
 }
 
 export interface DeleteFileResponse {
