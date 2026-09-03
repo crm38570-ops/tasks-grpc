@@ -31,7 +31,20 @@ export class FilesRepository extends Repository<FileEntity> {
   ): Promise<FileMetadataResponse[]> {
     const query = this.createQueryBuilder('file');
 
-    return await query.where({ ...listFilesRequest }).getMany();
+    const files = await query.where({ ...listFilesRequest }).getMany();
+
+    return files.map((file) => this.toMetadataResponse(file));
+  }
+
+  private toMetadataResponse(file: FileEntity): FileMetadataResponse {
+    return {
+      fileId: file.fileId,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      size: Number(file.size),
+      taskId: file.taskId,
+      uploadedAt: file.uploadedAt.toISOString(),
+    };
   }
 
   async deleteFile(
