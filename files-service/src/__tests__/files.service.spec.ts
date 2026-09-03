@@ -21,16 +21,18 @@ import { FileEntity } from '../files/file.entity';
 import { RpcException } from '@nestjs/microservices';
 import fs from 'node:fs';
 import { Readable, Writable } from 'node:stream';
-import { lastValueFrom, of, toArray } from 'rxjs';
+import { lastValueFrom, toArray } from 'rxjs';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { mockFileUserId, mockTaskUserId } from './variables';
 import { Logger } from '@nestjs/common';
 import { TaskOwnershipService } from '../files/tasks-internal/task-ownership.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('FilesService', () => {
   beforeAll(() => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
   });
 
   afterAll(() => {
@@ -44,8 +46,17 @@ describe('FilesService', () => {
     service = new FilesService(
       mockRepo as unknown as FilesRepository,
       mockTaskOwnership as unknown as TaskOwnershipService,
+      mockConfig as unknown as ConfigService,
     );
   });
+
+  const mockConfig = {
+    getOrThrow: jest.fn((key: string) => {
+      if (key === 'FILE_DIR') return './storage';
+      if (key === 'MAX_UPLOAD_SIZE') return 10 * 1024 * 1024;
+      return undefined;
+    }),
+  };
 
   const mockRepo = {
     saveFile:
@@ -70,7 +81,8 @@ describe('FilesService', () => {
   };
 
   const mockTaskOwnership = {
-    validateTaskOwner: jest.fn<(taskId: string, userId: string) => Promise<void>>(),
+    validateTaskOwner:
+      jest.fn<(taskId: string, userId: string) => Promise<void>>(),
   };
 
   it('saveFile успешно сохраняет файл', async () => {
@@ -347,12 +359,16 @@ describe('FilesService', () => {
       expect(mockRepo.getFile).toHaveBeenCalledWith(mockFileUserId.fileId);
       expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
       expect(unlinkSpy).toHaveBeenCalled();
+
+      const deleteCallOrder = mockRepo.deleteFile.mock.invocationCallOrder[0];
+      const unlinkCallOrder = unlinkSpy.mock.invocationCallOrder[0];
+      expect(deleteCallOrder).toBeLessThan(unlinkCallOrder);
     } finally {
       unlinkSpy.mockRestore();
     }
   });
 
-  it('deleteFile пробрасывает RpcException с кодом 5', async () => {
+  it('deleteFile не удаляет файл с диска, если БД вернула ошибку', async () => {
     const error = new RpcException({
       code: 5,
       message: 'Файл не найден',
@@ -385,7 +401,7 @@ describe('FilesService', () => {
         message: 'Файл не найден',
       });
 
-      expect(unlinkSpy).toHaveBeenCalled();
+      expect(unlinkSpy).not.toHaveBeenCalled();
       expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
     } finally {
       unlinkSpy.mockRestore();
@@ -415,7 +431,7 @@ describe('FilesService', () => {
       }
 
       expect(caughtError).toBe(error);
-      expect(unlinkSpy).toHaveBeenCalled();
+      expect(unlinkSpy).not.toHaveBeenCalled();
       expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
     } finally {
       unlinkSpy.mockRestore();
@@ -449,7 +465,7 @@ describe('FilesService', () => {
       });
 
       expect(mockRepo.deleteFile).toHaveBeenCalledWith(mockFileUserId);
-      expect(unlinkSpy).toHaveBeenCalled();
+      expect(unlinkSpy).not.toHaveBeenCalled();
     } finally {
       unlinkSpy.mockRestore();
     }
@@ -513,6 +529,7 @@ describe('FilesService', () => {
   it(`downloadFile успешно отдаёт файл`, async () => {
     mockRepo.downloadFileVerifyUser.mockResolvedValue({
       fileId: mockFileUserId.fileId,
+      uploadedAt: new Date('2026-09-01T12:00:00.000Z'),
     } as FileEntity);
 
     const stream = Readable.from([Buffer.from('hello')]);
@@ -546,7 +563,7 @@ describe('FilesService', () => {
       size: 5,
       taskId: 'task-id',
       userId: mockFileUserId.userId,
-      uploadedAt: '2026-08-26T00:00:00.000Z',
+      uploadedAt: new Date('2026-08-26T00:00:00.000Z'),
     };
     mockRepo.downloadFileVerifyUser.mockResolvedValue(file);
 
@@ -567,7 +584,7 @@ describe('FilesService', () => {
             mimeType: file.mimeType,
             size: file.size,
             taskId: file.taskId,
-            uploadedAt: file.uploadedAt,
+            uploadedAt: '2026-08-26T00:00:00.000Z',
           },
         },
         { chunk: Buffer.from('hello'), metadata: undefined },
@@ -601,6 +618,7 @@ describe('FilesService', () => {
   it('downloadFile возвращает ошибку 5, если файла нет на диске', async () => {
     mockRepo.downloadFileVerifyUser.mockResolvedValue({
       fileId: mockFileUserId.fileId,
+      uploadedAt: new Date('2026-09-01T12:00:00.000Z'),
     } as FileEntity);
 
     const stream = new Readable({
