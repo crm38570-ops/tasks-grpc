@@ -1,6 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { TaskStatusDto } from '../dto';
+import { TaskStatusDto, TasksListResponseDto } from '../dto';
 
 export function GetTasksApi() {
   return applyDecorators(
@@ -17,7 +17,15 @@ export function GetTasksApi() {
       type: String,
       description: 'Поиск по задачам',
     }),
-    ApiResponse({ status: 200, description: 'Список задач' }),
+    ApiResponse({
+      status: 200,
+      description: 'Список задач',
+      type: TasksListResponseDto,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Некорректные параметры фильтрации',
+    }),
     ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
   );
 }
