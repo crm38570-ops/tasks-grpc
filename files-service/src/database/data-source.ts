@@ -16,5 +16,5 @@ export default new DataSource({
   migrations: [`${__dirname}/migrations/*{.ts,.js}`],
   migrationsTableName: 'files_migrations',
   synchronize: false,
-  logging: true,
+  logging: process.env.STAGE === 'dev',
 });

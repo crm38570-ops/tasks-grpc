@@ -1,5 +1,9 @@
 import { describe, it, expect } from '@jest/globals';
-import { BadRequestException, HttpException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  NotFoundException,
+} from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { toGrpcError } from '../common/filters/to-grpc-error';
@@ -26,7 +30,9 @@ describe(`toGrpcError`, () => {
   });
 
   it(`Маппит BadRequestException в INVALID_ARGUMENT(3)`, () => {
-    expect(toGrpcError(new BadRequestException('Невалидные метаданные'))).toEqual({
+    expect(
+      toGrpcError(new BadRequestException('Невалидные метаданные')),
+    ).toEqual({
       code: status.INVALID_ARGUMENT,
       message: 'Невалидные метаданные',
     });
