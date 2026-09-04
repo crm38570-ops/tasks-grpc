@@ -116,9 +116,23 @@ export class FilesService {
       this.logger.error(
         `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${stack}`,
       );
-      writeStream.destroy();
+      if (!writeStream.destroyed) {
+        writeStream.destroy();
+        await once(writeStream, 'close');
+      }
       await fs.promises.unlink(filePath).catch(() => undefined);
       throw err;
+    }
+  }
+
+  private logFailure(message: string, err: unknown): void {
+    const stack = err instanceof Error ? err.stack : String(err);
+    const text = `${message} StackTrace: ${stack}`;
+
+    if (err instanceof RpcException) {
+      this.logger.warn(text);
+    } else {
+      this.logger.error(text);
     }
   }
 
@@ -130,8 +144,9 @@ export class FilesService {
 
       return { files };
     } catch (err) {
-      this.logger.error(
-        `Не удалось получить список файлов для taskId: ${taskId}. StackTrace: ${(err as RpcException).stack}`,
+      this.logFailure(
+        `Не удалось получить список файлов для taskId: ${taskId}`,
+        err,
       );
 
       throw err;
@@ -175,9 +190,7 @@ export class FilesService {
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
-      this.logger.error(
-        `Не удалось удалить файл с fileId: ${fileId}. StackTrace: ${(err as RpcException).stack}`,
-      );
+      this.logFailure(`Не удалось удалить файл с fileId: ${fileId}`, err);
 
       throw err;
     }

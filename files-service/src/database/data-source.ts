@@ -12,6 +12,6 @@ export default new DataSource(
     migrationsTableName: 'files_migrations',
     migrationsGlob: `${__dirname}/migrations/*{.ts,.js}`,
     entities: [FileEntity],
-    logging: true,
+    logging: process.env.STAGE === 'dev',
   }),
 );
