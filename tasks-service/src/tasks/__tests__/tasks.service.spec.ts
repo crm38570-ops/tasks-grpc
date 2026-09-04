@@ -10,7 +10,10 @@ import { TaskStatus as GrpcTaskStatus } from '../../proto/tasks/generated/tasks_
 const mockTasksRepository = {
   findOne: jest.fn<() => Promise<Task | null>>(),
   delete: jest.fn<() => Promise<{ affected: number }>>(),
-  updateTaskStatus: jest.fn<(task: Task) => Promise<Task>>(),
+  updateTaskStatus:
+    jest.fn<
+      (id: string, userId: string, status: TaskStatus) => Promise<Task | null>
+    >(),
 };
 
 const mockUserId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
@@ -92,7 +95,6 @@ describe('TaskService', () => {
   });
 
   it('Обновляет статус задачи', async () => {
-    mockTasksRepository.findOne.mockResolvedValue(mockTask);
     mockTasksRepository.updateTaskStatus.mockResolvedValue(
       mockTaskWithStatusDone,
     );
@@ -107,7 +109,21 @@ describe('TaskService', () => {
 
     expect(result.task?.status).toBe(GrpcTaskStatus.TASK_STATUS_DONE);
     expect(mockTasksRepository.updateTaskStatus).toHaveBeenCalledWith(
-      mockTaskWithStatusDone,
+      id,
+      mockUserId,
+      TaskStatus.DONE,
     );
+  });
+
+  it('Бросает NotFoundException при обновлении, если задача не найдена', async () => {
+    mockTasksRepository.updateTaskStatus.mockResolvedValue(null);
+
+    await expect(
+      service.updateTaskStatus({
+        id: mockTask.id,
+        status: GrpcTaskStatus.TASK_STATUS_DONE,
+        userId: mockUserId,
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });
