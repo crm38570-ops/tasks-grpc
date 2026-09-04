@@ -1044,6 +1044,8 @@
 
 "@mcs/shared@file:../shared":
   version "0.3.0"
+  dependencies:
+    typeorm "^1.1.1"
 
 "@napi-rs/wasm-runtime@^1.1.4":
   version "1.2.2"
