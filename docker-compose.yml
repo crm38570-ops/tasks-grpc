@@ -25,7 +25,7 @@ services:
       dockerfile: auth-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${AUTH_PORT}
       GRPC_PORT: ${AUTH_GRPC_PORT}
       PROTO_PATH: /app/proto/auth/auth_service.proto
@@ -62,7 +62,7 @@ services:
       dockerfile: gateway/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${GATEWAY_PORT}
       AUTH_GRPC_URL: auth-service:${AUTH_GRPC_PORT}
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
@@ -86,7 +86,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "require('node:http').get('http://127.0.0.1:3000/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+          "require('node:http').get('http://127.0.0.1:${GATEWAY_PORT}/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -98,7 +98,7 @@ services:
       dockerfile: files-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       GRPC_PORT: ${FILES_GRPC_PORT}
       PROTO_PATH: /app/proto/files/files_service.proto
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
@@ -134,7 +134,7 @@ services:
       dockerfile: tasks-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${TASKS_PORT}
       GRPC_PORT: ${TASKS_GRPC_PORT}
       DB_HOST: postgres
