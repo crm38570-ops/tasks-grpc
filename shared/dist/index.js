@@ -9,7 +9,7 @@ function createDataSource(options) {
         port: Number(process.env.DB_PORT ?? 5432),
         username: process.env.DB_USERNAME ?? "postgres",
         password: process.env.DB_PASSWORD ?? "postgres",
-        database: options.database,
+        database: process.env.DB_DATABASE ?? options.database,
         entities: options.entities,
         migrations: [options.migrationsGlob],
         migrationsTableName: options.migrationsTableName,
