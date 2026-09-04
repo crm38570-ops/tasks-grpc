@@ -116,7 +116,10 @@ export class FilesService {
       this.logger.error(
         `Не удалось сохранить файл: fileId=${fileId}, taskId=${metadata?.taskId ?? 'unknown'}, userId=${metadata?.userId ?? 'unknown'}, StackTrace: ${stack}`,
       );
-      writeStream.destroy();
+      if (!writeStream.destroyed) {
+        writeStream.destroy();
+        await once(writeStream, 'close');
+      }
       await fs.promises.unlink(filePath).catch(() => undefined);
       throw err;
     }

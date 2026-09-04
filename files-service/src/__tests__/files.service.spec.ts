@@ -145,6 +145,39 @@ describe('FilesService', () => {
     }
   });
 
+  it('saveFile закрывает стрим до удаления файла с диска при ошибке', async () => {
+    const calls: string[] = [];
+
+    const fakeWriteStream = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+    fakeWriteStream.on('close', () => calls.push('close'));
+
+    const createWriteStreamSpy = jest
+      .spyOn(fs, 'createWriteStream')
+      .mockReturnValue(fakeWriteStream as fs.WriteStream);
+
+    const unlinkSpy = jest
+      .spyOn(fs.promises, 'unlink')
+      .mockImplementation(() => {
+        calls.push('unlink');
+        return Promise.resolve(undefined);
+      });
+
+    try {
+      await expect(
+        service.saveFile(Readable.from<UploadFileRequestDto>([])),
+      ).rejects.toBeInstanceOf(RpcException);
+
+      expect(calls).toEqual(['close', 'unlink']);
+    } finally {
+      createWriteStreamSpy.mockRestore();
+      unlinkSpy.mockRestore();
+    }
+  });
+
   it('saveFile возвращает RpcException с кодом 3, если поток пуст', async () => {
     const createWriteStreamSpy = jest
       .spyOn(fs, 'createWriteStream')
