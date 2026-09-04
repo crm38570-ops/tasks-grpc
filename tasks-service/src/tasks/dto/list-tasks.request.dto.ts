@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import type { ListTasksRequest } from '../../proto/tasks/generated/tasks_service';
 import { allowedGrpcStatuses } from './allowed-grpc-statuses';
 
@@ -9,6 +9,7 @@ export class ListTasksRequestDto implements ListTasksRequest {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   searchQuery: string;
 
   @IsString()
