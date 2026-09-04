@@ -2,6 +2,21 @@
 
 Журнал архитектурных решений. Новые записи добавляются сверху.
 
+## 04.09.2026 — `metadata.size` убран из UploadFile-контракта
+
+**Решение.** Поле `size` удалено из `FileMetadataRequest` в
+`proto/files/files_service.proto` (номер 3 зарезервирован). Клиентский
+заявленный размер никем не использовался: валидация проверяла его только
+«не пусто» против серверного лимита, а в БД писался фактический
+`totalBytes`. Сервер считает размер сам; в `FileMetadataResponse` поле
+остаётся (факт). Gateway больше не шлёт `size: 0`.
+
+**Альтернатива.** Сверять `totalBytes === metadata.size` в конце стрима —
+отвергнуто: это защита от клиента, который сам врёт себе; реальный лимит
+и так enforced сервером (`validateUploadFileContent`).
+
+**Внедрено.** `service-files/drop-metadata-size` (files-service + gateway).
+
 ## 03.09.2026 — Deadline на gRPC-вызовах gateway: частичное покрытие стриминга
 
 **Решение.** Все унарные gRPC-вызовы из gateway обёрнуты в `withDeadline(obs$, GRPC_TIMEOUT_MS)`

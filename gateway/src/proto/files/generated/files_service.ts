@@ -13,7 +13,6 @@ export const protobufPackage = "files";
 export interface FileMetadataRequest {
   fileName: string;
   mimeType: string;
-  size: number;
   taskId: string;
   userId: string;
 }
