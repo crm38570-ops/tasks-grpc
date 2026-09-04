@@ -1,11 +1,9 @@
 import { Type } from 'class-transformer';
 import {
   IsDefined,
-  IsInt,
   IsMimeType,
   IsString,
   IsUUID,
-  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -16,10 +14,6 @@ export class FileMetadata {
   @IsString()
   @IsMimeType()
   mimeType: string;
-
-  @IsInt()
-  @Min(0)
-  size: number;
 
   @IsString()
   @IsUUID('4')

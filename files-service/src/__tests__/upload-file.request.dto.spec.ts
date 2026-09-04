@@ -66,39 +66,6 @@ describe(`UploadFileRequestDto`, () => {
     expect(collect(errors)).toContain('mimeType must be MIME type format');
   });
 
-  it(`Валидирует metadata с нулевым size без ошибок`, async () => {
-    const errors = await validate(
-      plainToInstance(UploadFileRequestDto, {
-        ...validPayload,
-        metadata: { ...validPayload.metadata, size: 0 },
-      }),
-    );
-
-    expect(errors).toEqual([]);
-  });
-
-  it(`Возвращает ошибку нецелого size`, async () => {
-    const errors = await validate(
-      plainToInstance(UploadFileRequestDto, {
-        ...validPayload,
-        metadata: { ...validPayload.metadata, size: 1.5 },
-      }),
-    );
-
-    expect(collect(errors)).toContain('size must be an integer number');
-  });
-
-  it(`Возвращает ошибку min для отрицательного size`, async () => {
-    const errors = await validate(
-      plainToInstance(UploadFileRequestDto, {
-        ...validPayload,
-        metadata: { ...validPayload.metadata, size: -1 },
-      }),
-    );
-
-    expect(collect(errors)).toContain('size must not be less than 0');
-  });
-
   it(`Возвращает ошибку UUID для некорректного taskId`, async () => {
     const errors = await validate(
       plainToInstance(UploadFileRequestDto, {
@@ -141,7 +108,6 @@ const validPayload = {
   metadata: {
     fileName: 'file.txt',
     mimeType: 'text/plain',
-    size: 12,
     taskId: '550e8400-e29b-41d4-a716-446655440000',
     userId: '550e8400-e29b-41d4-a716-446655440001',
   },
