@@ -80,7 +80,6 @@ export class FilesProxyService implements OnModuleInit {
           metadata: {
             fileName,
             mimeType,
-            size: 0,
             taskId,
             userId,
           },
