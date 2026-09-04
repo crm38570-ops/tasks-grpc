@@ -54,11 +54,17 @@ export class TasksRepository extends Repository<Task> {
 
     if (status) query.andWhere('task.status = :status', { status });
 
-    if (searchQuery)
+    if (searchQuery) {
+      const escaped = searchQuery
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+
       query.andWhere(
         '(LOWER(task.title) LIKE LOWER(:searchQuery) OR LOWER(task.description) LIKE LOWER(:searchQuery))',
-        { searchQuery: `%${searchQuery}%` },
+        { searchQuery: `%${escaped}%` },
       );
+    }
 
     try {
       const tasks = await query.getMany();
