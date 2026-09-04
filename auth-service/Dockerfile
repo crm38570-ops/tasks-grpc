@@ -2,6 +2,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app/auth-service
 
+COPY shared/ /app/shared/
 COPY auth-service/package.json auth-service/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
@@ -16,6 +17,7 @@ FROM node:22-alpine
 WORKDIR /app/auth-service
 ENV NODE_ENV=production
 
+COPY shared/ /app/shared/
 COPY auth-service/package.json auth-service/yarn.lock ./
 RUN yarn install --production --frozen-lockfile
 

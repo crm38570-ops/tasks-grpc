@@ -14,3 +14,6 @@ TASKS.md
 
 # артефакты инкрементальной сборки TS
 *.tsbuildinfo
+
+# зависимости
+node_modules/

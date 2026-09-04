@@ -24,11 +24,17 @@
     "typeorm:revert": "yarn typeorm migration:revert",
     "typeorm:prod": "node node_modules/typeorm/cli.js -d dist/database/data-source.js",
     "typeorm:run:prod": "yarn typeorm:prod migration:run",
-    "proto:gen": "node scripts/generate-protos.js"
+    "proto:gen": "node node_modules/@mcs/shared/scripts/generate-protos.js"
+  },
+  "mcs": {
+    "protos": [
+      "auth"
+    ]
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.13.0",
     "@grpc/grpc-js": "^1.14.4",
+    "@mcs/shared": "file:../shared",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^12.0.1",
