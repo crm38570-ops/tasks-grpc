@@ -78,6 +78,8 @@ services:
         condition: service_healthy
       tasks-service:
         condition: service_healthy
+      files-service:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -112,6 +114,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      tasks-service:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -140,12 +144,9 @@ services:
       DB_DATABASE: ${TASKS_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
       PROTO_ROOT: /app/proto
     depends_on:
       postgres:
-        condition: service_healthy
-      files-service:
         condition: service_healthy
     healthcheck:
       test:
