@@ -89,7 +89,6 @@ describe('FilesService', () => {
     const metadata = {
       fileName: 'cat.png',
       mimeType: 'image/png',
-      size: 3,
       taskId: '11111111-1111-4111-8111-111111111111',
       userId: '22222222-2222-4222-8222-222222222222',
     };
@@ -177,52 +176,6 @@ describe('FilesService', () => {
     }
   });
 
-  it('saveFile сохраняет фактический размер, если metadata.size равен 0', async () => {
-    const fakeWriteStream = new Writable({
-      write(_chunk, _encoding, callback) {
-        callback();
-      },
-    });
-
-    const createWriteStreamSpy = jest
-      .spyOn(fs, 'createWriteStream')
-      .mockReturnValue(fakeWriteStream as fs.WriteStream);
-
-    const unlinkSpy = jest
-      .spyOn(fs.promises, 'unlink')
-      .mockResolvedValue(undefined);
-
-    try {
-      await service.saveFile(
-        Readable.from<UploadFileRequestDto>([
-          {
-            content: new Uint8Array([1, 2, 3]),
-            metadata: {
-              fileName: 'cat.png',
-              mimeType: 'image/png',
-              size: 0,
-              taskId: '11111111-1111-4111-8111-111111111111',
-              userId: '22222222-2222-4222-8222-222222222222',
-            },
-          } as UploadFileRequestDto,
-        ]),
-      );
-
-      expect(mockRepo.saveFile).toHaveBeenCalledWith({
-        fileId: expect.any(String),
-        fileName: 'cat.png',
-        mimeType: 'image/png',
-        size: 3,
-        taskId: '11111111-1111-4111-8111-111111111111',
-        userId: '22222222-2222-4222-8222-222222222222',
-      });
-      expect(unlinkSpy).not.toHaveBeenCalled();
-    } finally {
-      createWriteStreamSpy.mockRestore();
-      unlinkSpy.mockRestore();
-    }
-  });
-
   it('saveFile возвращает RpcException с кодом 7, если задача не принадлежит пользователю', async () => {
     const createWriteStreamSpy = jest
       .spyOn(fs, 'createWriteStream')
@@ -250,7 +203,6 @@ describe('FilesService', () => {
               metadata: {
                 fileName: 'cat.png',
                 mimeType: 'image/png',
-                size: 0,
                 taskId: '11111111-1111-4111-8111-111111111111',
                 userId: '22222222-2222-4222-8222-222222222222',
               },
@@ -294,7 +246,6 @@ describe('FilesService', () => {
               metadata: {
                 fileName: 'cat.png',
                 mimeType: 'image/png',
-                size: 3,
                 taskId: 'not-a-uuid',
                 userId: '22222222-2222-4222-8222-222222222222',
               },

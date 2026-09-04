@@ -1,9 +1,6 @@
-import {
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
 import { QueryFailedError, Repository } from 'typeorm';
 import { User } from '../user/user.entity';
 import { DataSource } from 'typeorm';
@@ -39,9 +36,15 @@ export class UsersRepository extends Repository<User> {
         const code = (error.driverError as { code?: string }).code;
 
         if (code === '23505') {
-          throw new ConflictException(`Username already exists`);
+          throw new RpcException({
+            code: status.ALREADY_EXISTS,
+            message: 'Username already exists',
+          });
         } else {
-          throw new InternalServerErrorException();
+          throw new RpcException({
+            code: status.INTERNAL,
+            message: 'Internal server error',
+          });
         }
       } else {
         throw error;

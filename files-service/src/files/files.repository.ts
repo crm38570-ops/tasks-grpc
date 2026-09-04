@@ -3,7 +3,6 @@ import { DataSource, Repository } from 'typeorm';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
-  FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
 } from '../proto/files/generated/files_service';
@@ -16,10 +15,8 @@ export class FilesRepository extends Repository<FileEntity> {
     super(FileEntity, dataSource.createEntityManager());
   }
 
-  async saveFile(
-    fileMetadataRequest: FileMetadataRequest & { fileId: string },
-  ): Promise<FileEntity> {
-    return await this.save(this.create(fileMetadataRequest));
+  async saveFile(file: Omit<FileEntity, 'uploadedAt'>): Promise<FileEntity> {
+    return await this.save(this.create(file));
   }
 
   getFile(fileId: string): Promise<FileEntity | null> {

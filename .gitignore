@@ -12,4 +12,5 @@ test/downloaded-*.jpg
 TASKS.md
 .commandcode
 
-gateway/tsconfig.build.tsbuildinfo
+# артефакты инкрементальной сборки TS
+*.tsbuildinfo

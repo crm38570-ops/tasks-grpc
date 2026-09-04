@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { UnauthorizedException } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -73,22 +74,29 @@ describe('AuthService', () => {
     });
   });
 
-  it('signIn выбрасывает UnauthorizedException, если пользователь не найден', async () => {
+  it('signIn выбрасывает RpcException UNAUTHENTICATED, если пользователь не найден', async () => {
     usersRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.signIn(credentials)).rejects.toThrow(
-      UnauthorizedException,
-    );
+    let caughtError: RpcException | undefined;
+    try {
+      await service.signIn(credentials);
+    } catch (error) {
+      caughtError = error as RpcException;
+    }
+
+    expect(caughtError).toBeInstanceOf(RpcException);
+    expect(caughtError?.getError()).toEqual({
+      code: status.UNAUTHENTICATED,
+      message: 'Please check your login credentials',
+    });
     expect(jwtService.sign).not.toHaveBeenCalled();
   });
 
-  it('signIn выбрасывает UnauthorizedException при неверном пароле', async () => {
+  it('signIn выбрасывает RpcException UNAUTHENTICATED при неверном пароле', async () => {
     usersRepository.findOne.mockResolvedValue(user);
     jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as never);
 
-    await expect(service.signIn(credentials)).rejects.toThrow(
-      UnauthorizedException,
-    );
+    await expect(service.signIn(credentials)).rejects.toThrow(RpcException);
     expect(jwtService.sign).not.toHaveBeenCalled();
   });
 });

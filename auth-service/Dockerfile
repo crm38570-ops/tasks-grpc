@@ -7,6 +7,8 @@ RUN yarn install --frozen-lockfile
 
 COPY auth-service/ .
 COPY proto/ /app/proto/
+
+RUN yarn proto:gen
 RUN yarn build
 
 # Stage 2: production
@@ -23,4 +25,4 @@ COPY --from=build /app/proto /app/proto
 USER node
 
 EXPOSE 3001
-CMD ["sh", "-c", "yarn migration:run:prod && node dist/main.js"]
+CMD ["sh", "-c", "yarn typeorm:run:prod && node dist/main.js"]
