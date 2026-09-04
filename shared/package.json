@@ -7,8 +7,5 @@
   "files": [
     "dist",
     "scripts"
-  ],
-  "dependencies": {
-    "typeorm": "^1.1.1"
-  }
+  ]
 }
