@@ -1,4 +1,3 @@
-import { DataSource } from "typeorm";
 export interface McsDataSourceOptions {
     database: string;
     migrationsTableName: string;
@@ -6,4 +5,16 @@ export interface McsDataSourceOptions {
     entities: any[];
     logging?: boolean;
 }
-export declare function createDataSource(options: McsDataSourceOptions): DataSource;
+export declare function createDataSourceOptions(options: McsDataSourceOptions): {
+    type: "postgres";
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+    entities: any[];
+    migrations: string[];
+    migrationsTableName: string;
+    synchronize: boolean;
+    logging: boolean;
+};
