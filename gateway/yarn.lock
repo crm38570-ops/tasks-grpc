@@ -1037,6 +1037,9 @@
     semver "^7.5.3"
     tar "^7.4.0"
 
+"@mcs/shared@file:../shared":
+  version "0.1.1"
+
 "@microsoft/tsdoc@0.16.0":
   version "0.16.0"
   resolved "https://registry.yarnpkg.com/@microsoft/tsdoc/-/tsdoc-0.16.0.tgz#2249090633e04063176863a050c8f0808d2b6d2b"
