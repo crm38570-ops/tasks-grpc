@@ -3,6 +3,7 @@ FROM node:22-alpine AS build
 
 WORKDIR /app/gateway
 
+COPY shared/ /app/shared/
 COPY gateway/package.json gateway/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
@@ -19,6 +20,7 @@ WORKDIR /app/gateway
 
 ENV NODE_ENV=production
 
+COPY shared/ /app/shared/
 COPY gateway/package.json gateway/yarn.lock ./
 RUN yarn install --production --frozen-lockfile
 
