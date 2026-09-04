@@ -18,11 +18,19 @@
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "cross-env STAGE=dev PORT=3000 AUTH_GRPC_URL=localhost:50051 TASKS_GRPC_URL=localhost:50052 FILES_GRPC_URL=localhost:50051 JWT_SECRET=test-secret CORS_ORIGINS=http://localhost:3000 MAX_UPLOAD_SIZE=1048576 GRPC_TIMEOUT_MS=5000 NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
-    "proto:gen": "node scripts/generate-protos.js"
+    "proto:gen": "node node_modules/@mcs/shared/scripts/generate-protos.js"
+  },
+  "mcs": {
+    "protos": [
+      "auth",
+      "files",
+      "tasks"
+    ]
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
+    "@mcs/shared": "file:../shared",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^12.0.1",
