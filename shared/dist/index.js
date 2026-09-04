@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDataSourceOptions = createDataSourceOptions;
+exports.createGrpcServerOptions = createGrpcServerOptions;
 function createDataSourceOptions(options) {
     return {
         type: 'postgres',
@@ -14,5 +15,15 @@ function createDataSourceOptions(options) {
         migrationsTableName: options.migrationsTableName,
         synchronize: false,
         logging: options.logging ?? false,
+    };
+}
+function createGrpcServerOptions(options) {
+    return {
+        package: options.package,
+        protoPath: options.protoPath,
+        url: `0.0.0.0:${options.port}`,
+        loader: {
+            longs: Number,
+        },
     };
 }

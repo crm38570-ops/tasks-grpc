@@ -18,3 +18,16 @@ export declare function createDataSourceOptions(options: McsDataSourceOptions): 
     synchronize: boolean;
     logging: boolean;
 };
+export interface McsGrpcServerOptions {
+    package: string | string[];
+    protoPath: string | string[];
+    port: number;
+}
+export declare function createGrpcServerOptions(options: McsGrpcServerOptions): {
+    package: string | string[];
+    protoPath: string | string[];
+    url: string;
+    loader: {
+        longs: NumberConstructor;
+    };
+};

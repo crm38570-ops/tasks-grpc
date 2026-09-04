@@ -21,3 +21,20 @@ export function createDataSourceOptions(options: McsDataSourceOptions) {
     logging: options.logging ?? false,
   };
 }
+
+export interface McsGrpcServerOptions {
+  package: string | string[];
+  protoPath: string | string[];
+  port: number;
+}
+
+export function createGrpcServerOptions(options: McsGrpcServerOptions) {
+  return {
+    package: options.package,
+    protoPath: options.protoPath,
+    url: `0.0.0.0:${options.port}`,
+    loader: {
+      longs: Number,
+    },
+  };
+}
