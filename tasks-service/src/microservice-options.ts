@@ -5,7 +5,8 @@ import { join } from 'node:path';
 export const getMicroserviceOptions = (
   configService: ConfigService,
 ): MicroserviceOptions => {
-  const protoDir = configService.get<string>('PROTO_ROOT') ?? join(__dirname, 'proto');
+  const protoDir =
+    configService.get<string>('PROTO_ROOT') ?? join(__dirname, 'proto');
   const port = configService.get<number>('GRPC_PORT');
 
   return {

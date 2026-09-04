@@ -37,7 +37,7 @@ export class GrpcExceptionFilter extends BaseRpcExceptionFilter {
           ? 'Внутренняя ошибка сервера'
           : exception.message;
 
-      if (exception.getStatus() < HttpStatus.INTERNAL_SERVER_ERROR) {
+      if (exception.getStatus() < Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
         this.logger.warn(
           `Необработанное исключение в gRPC: ${grpcCode}, message=${message}`,
         );

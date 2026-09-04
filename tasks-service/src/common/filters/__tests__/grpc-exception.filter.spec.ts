@@ -10,7 +10,7 @@ import { status } from '@grpc/grpc-js';
 import { firstValueFrom } from 'rxjs';
 import { GrpcExceptionFilter } from '../grpc-exception.filter';
 
-const cases: [HttpException, number][] = [
+const cases: [HttpException, status][] = [
   [new NotFoundException('Task not found'), status.NOT_FOUND],
   [new BadRequestException('Validation failed'), status.INVALID_ARGUMENT],
   [new HttpException('Unexpected', 500), status.INTERNAL],
@@ -23,9 +23,9 @@ describe('GrpcExceptionFilter', () => {
   it.each(cases)(
     'маппит HTTP-исключение %p в gRPC-код %i',
     async (httpError, code) => {
-      const caught = await firstValueFrom(
-        filter.catch(httpError, host),
-      ).catch((e) => e);
+      const caught = await firstValueFrom(filter.catch(httpError, host)).catch(
+        (e: unknown) => e,
+      );
 
       expect(caught).toEqual({
         code,
@@ -42,7 +42,7 @@ describe('GrpcExceptionFilter', () => {
 
     const caught = await firstValueFrom(
       filter.catch(new RpcException(rpcError), host),
-    ).catch((e) => e);
+    ).catch((e: unknown) => e);
 
     expect(caught).toBe(rpcError);
   });
@@ -50,7 +50,7 @@ describe('GrpcExceptionFilter', () => {
   it('маппит необработанную ошибку в INTERNAL', async () => {
     const caught = await firstValueFrom(
       filter.catch(new Error('Database error'), host),
-    ).catch((e) => e);
+    ).catch((e: unknown) => e);
 
     expect(caught).toEqual({
       code: status.INTERNAL,
