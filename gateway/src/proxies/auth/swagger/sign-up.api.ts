@@ -9,5 +9,9 @@ export function SignUpApi() {
       status: 400,
       description: 'Некорректные данные регистрации',
     }),
+    ApiResponse({
+      status: 409,
+      description: 'Пользователь с таким именем уже существует',
+    }),
   );
 }

@@ -31,6 +31,13 @@ export function UploadFileApi() {
     ApiResponse({ status: 201, description: 'Файл загружен' }),
     ApiResponse({ status: 400, description: 'Некорректные данные файла' }),
     ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
-    ApiResponse({ status: 404, description: 'Задача не найдена' }),
+    ApiResponse({
+      status: 403,
+      description: 'Задача не найдена или не принадлежит пользователю',
+    }),
+    ApiResponse({
+      status: 413,
+      description: 'Файл превышает максимальный размер',
+    }),
   );
 }

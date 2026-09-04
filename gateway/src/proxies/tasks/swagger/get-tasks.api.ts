@@ -18,6 +18,7 @@ export function GetTasksApi() {
       description: 'Поиск по задачам',
     }),
     ApiResponse({ status: 200, description: 'Список задач' }),
+    ApiResponse({ status: 400, description: 'Некорректные параметры фильтрации' }),
     ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
   );
 }

@@ -9,5 +9,6 @@ export function SignInApi() {
       status: 400,
       description: 'Некорректные данные авторизации',
     }),
+    ApiResponse({ status: 401, description: 'Неверные учётные данные' }),
   );
 }
