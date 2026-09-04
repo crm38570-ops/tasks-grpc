@@ -125,6 +125,17 @@ export class FilesService {
     }
   }
 
+  private logFailure(message: string, err: unknown): void {
+    const stack = err instanceof Error ? err.stack : String(err);
+    const text = `${message} StackTrace: ${stack}`;
+
+    if (err instanceof RpcException) {
+      this.logger.warn(text);
+    } else {
+      this.logger.error(text);
+    }
+  }
+
   async getListFiles(listFilesRequest: ListFilesRequest) {
     const { taskId } = listFilesRequest;
 
@@ -133,8 +144,9 @@ export class FilesService {
 
       return { files };
     } catch (err) {
-      this.logger.error(
-        `Не удалось получить список файлов для taskId: ${taskId}. StackTrace: ${(err as RpcException).stack}`,
+      this.logFailure(
+        `Не удалось получить список файлов для taskId: ${taskId}`,
+        err,
       );
 
       throw err;
@@ -178,9 +190,7 @@ export class FilesService {
 
       this.logger.log(`Файл с id ${fileId} успешно удалён.`);
     } catch (err) {
-      this.logger.error(
-        `Не удалось удалить файл с fileId: ${fileId}. StackTrace: ${(err as RpcException).stack}`,
-      );
+      this.logFailure(`Не удалось удалить файл с fileId: ${fileId}`, err);
 
       throw err;
     }

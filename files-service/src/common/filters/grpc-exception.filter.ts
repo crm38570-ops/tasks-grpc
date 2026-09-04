@@ -14,7 +14,7 @@ export class GrpcExceptionFilter extends BaseRpcExceptionFilter {
     void _host;
 
     if (exception instanceof RpcException) {
-      this.logger.error(exception.stack);
+      this.logger.warn(exception.stack);
       return throwError(() => toGrpcError(exception));
     }
 
