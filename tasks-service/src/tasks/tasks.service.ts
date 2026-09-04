@@ -1,7 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DeleteResult } from 'typeorm';
 import { TasksRepository } from './tasks.repository';
-import { Task } from './task.entity';
 import { toEntityStatus, toTaskResponse } from './services';
 import type {
   CreateTaskRequestDto,
@@ -111,10 +110,17 @@ export class TasksService {
       `Updating task "${id}" status to "${status}" for user "${userId}"`,
     );
 
-    const task = await this.getTaskEntityById(id, userId);
-    task.status = toEntityStatus(status);
+    const updated = await this.tasksRepository.updateTaskStatus(
+      id,
+      userId,
+      toEntityStatus(status),
+    );
 
-    const updated = await this.tasksRepository.updateTaskStatus(task);
+    if (!updated) {
+      this.logger.warn(`Task "${id}" not found for user "${userId}"`);
+      throw new NotFoundException('Task not found');
+    }
+
     return { task: toTaskResponse(updated) };
   }
 
@@ -133,18 +139,5 @@ export class TasksService {
     }
 
     return { isOwner: Boolean(found) };
-  }
-
-  private async getTaskEntityById(id: string, userId: string): Promise<Task> {
-    const found = await this.tasksRepository.findOne({
-      where: { id, userId },
-    });
-
-    if (!found) {
-      this.logger.warn(`Task "${id}" not found for user "${userId}"`);
-      throw new NotFoundException('Task not found');
-    }
-
-    return found;
   }
 }

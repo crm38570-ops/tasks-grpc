@@ -6,7 +6,8 @@ import { createGrpcServerOptions } from '@mcs/shared';
 export const getMicroserviceOptions = (
   configService: ConfigService,
 ): MicroserviceOptions => {
-  const protoDir = configService.get<string>('PROTO_ROOT') ?? join(__dirname, 'proto');
+  const protoDir =
+    configService.get<string>('PROTO_ROOT') ?? join(__dirname, 'proto');
   const port = configService.get<number>('GRPC_PORT');
   if (port === undefined) {
     throw new Error('GRPC_PORT is required');
