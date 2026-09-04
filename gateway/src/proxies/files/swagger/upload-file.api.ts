@@ -5,6 +5,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
+import { UploadFileResponseDto } from '../dto';
 
 export function UploadFileApi() {
   return applyDecorators(
@@ -28,7 +29,11 @@ export function UploadFileApi() {
         },
       },
     }),
-    ApiResponse({ status: 201, description: 'Файл загружен' }),
+    ApiResponse({
+      status: 201,
+      description: 'Файл загружен',
+      type: UploadFileResponseDto,
+    }),
     ApiResponse({ status: 400, description: 'Некорректные данные файла' }),
     ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
     ApiResponse({
