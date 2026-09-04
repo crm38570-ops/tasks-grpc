@@ -1,8 +1,8 @@
 import { ArgumentsHost, Catch, Logger } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
-import { status } from '@grpc/grpc-js';
 import { throwError } from 'rxjs';
 import { BaseRpcExceptionFilter } from '@nestjs/microservices/exceptions/base-rpc-exception-filter';
+import { toGrpcError } from './to-grpc-error';
 
 @Catch()
 export class GrpcExceptionFilter extends BaseRpcExceptionFilter {
@@ -15,7 +15,7 @@ export class GrpcExceptionFilter extends BaseRpcExceptionFilter {
 
     if (exception instanceof RpcException) {
       this.logger.error(exception.stack);
-      return throwError(() => exception.getError());
+      return throwError(() => toGrpcError(exception));
     }
 
     const error =
@@ -24,9 +24,6 @@ export class GrpcExceptionFilter extends BaseRpcExceptionFilter {
       `Необработанное исключение в gRPC: ${error.message}`,
       error.stack,
     );
-    return throwError(() => ({
-      code: status.INTERNAL,
-      message: 'Внутренняя ошибка сервера',
-    }));
+    return throwError(() => toGrpcError(exception));
   }
 }
