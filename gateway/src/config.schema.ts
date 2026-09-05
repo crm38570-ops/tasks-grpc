@@ -11,4 +11,6 @@ export const configValidationSchema = Joi.object({
   CORS_ORIGINS: Joi.string().required(),
 
   MAX_UPLOAD_SIZE: Joi.number().required(),
+
+  GRPC_TIMEOUT_MS: Joi.number().integer().positive().required(),
 });

@@ -35,24 +35,26 @@ export class RpcExceptionFilter implements ExceptionFilter {
     switch (code) {
       case status.INVALID_ARGUMENT:
         throw new BadRequestException(message);
-      case status.DEADLINE_EXCEEDED:
-        throw new GatewayTimeoutException(message);
       case status.NOT_FOUND:
         throw new NotFoundException(message);
       case status.ALREADY_EXISTS:
         throw new ConflictException(message);
       case status.PERMISSION_DENIED:
         throw new ForbiddenException(message);
-      case status.RESOURCE_EXHAUSTED:
-        throw new HttpException('Too Many Requests', 429);
-      case status.UNAVAILABLE:
-        throw new ServiceUnavailableException(message);
       case status.UNAUTHENTICATED:
         throw new UnauthorizedException(message);
+      case status.RESOURCE_EXHAUSTED:
+        throw new HttpException('Слишком много запросов', 429);
+      case status.DEADLINE_EXCEEDED:
+        throw new GatewayTimeoutException('Превышено время ожидания запроса');
+      case status.UNAVAILABLE:
+        throw new ServiceUnavailableException(
+          'Сервис временно недоступен, попробуйте позже',
+        );
       case status.INTERNAL:
       case status.UNKNOWN:
       default:
-        throw new InternalServerErrorException(message);
+        throw new InternalServerErrorException('Внутренняя ошибка сервера');
     }
   }
 }

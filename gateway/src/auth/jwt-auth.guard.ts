@@ -31,9 +31,15 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      request.user = this.jwtService.verify<JwtPayload>(token);
+      request.user = this.jwtService.verify<JwtPayload>(token, {
+        algorithms: ['HS256'],
+      });
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    if (!request.user?.userId) {
+      throw new UnauthorizedException('Invalid token payload');
     }
 
     return true;

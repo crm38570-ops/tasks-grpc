@@ -11,9 +11,9 @@ export function DeleteFileApi() {
       description: 'UUID файла',
     }),
     ApiResponse({ status: 200, description: 'Файл удалён' }),
-    ApiResponse({ status: 400, description: 'Некорректный fileId' }),
+    ApiResponse({ status: 400, description: 'Некорректный fileId или taskId' }),
     ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
-    ApiResponse({ status: 404, description: 'Файл не найден' }),
+    ApiResponse({ status: 404, description: 'Файл не найден или нет доступа' }),
     ApiQuery({ name: 'taskId', required: true, format: 'uuid' }),
   );
 }

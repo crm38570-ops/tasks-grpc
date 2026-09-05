@@ -25,7 +25,7 @@ services:
       dockerfile: auth-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${AUTH_PORT}
       GRPC_PORT: ${AUTH_GRPC_PORT}
       PROTO_PATH: /app/proto/auth/auth_service.proto
@@ -34,11 +34,6 @@ services:
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_DATABASE: ${AUTH_DB_DATABASE}
-      LEGACY_DB_HOST: postgres
-      LEGACY_DB_PORT: 5432
-      LEGACY_DB_USERNAME: ${POSTGRES_USER}
-      LEGACY_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      LEGACY_DB_DATABASE: ${TASKS_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
     depends_on:
@@ -62,7 +57,7 @@ services:
       dockerfile: gateway/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${GATEWAY_PORT}
       AUTH_GRPC_URL: auth-service:${AUTH_GRPC_PORT}
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
@@ -70,6 +65,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS}
       MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
+      GRPC_TIMEOUT_MS: ${GRPC_TIMEOUT_MS}
     ports:
       - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     depends_on:
@@ -77,13 +73,15 @@ services:
         condition: service_healthy
       tasks-service:
         condition: service_healthy
+      files-service:
+        condition: service_healthy
     healthcheck:
       test:
         [
           "CMD",
           "node",
           "-e",
-          "require('node:http').get('http://127.0.0.1:3000/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+          "require('node:http').get('http://127.0.0.1:${GATEWAY_PORT}/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -95,10 +93,11 @@ services:
       dockerfile: files-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       GRPC_PORT: ${FILES_GRPC_PORT}
       PROTO_PATH: /app/proto/files/files_service.proto
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
+      TASKS_GRPC_TIMEOUT_MS: ${TASKS_GRPC_TIMEOUT_MS}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}
@@ -109,6 +108,8 @@ services:
       - ./files-service/storage/:/app/storage
     depends_on:
       postgres:
+        condition: service_healthy
+      tasks-service:
         condition: service_healthy
     healthcheck:
       test:
@@ -128,7 +129,7 @@ services:
       dockerfile: tasks-service/Dockerfile
     restart: unless-stopped
     environment:
-      STAGE: dev
+      STAGE: ${STAGE:-dev}
       PORT: ${TASKS_PORT}
       GRPC_PORT: ${TASKS_GRPC_PORT}
       DB_HOST: postgres
@@ -138,12 +139,9 @@ services:
       DB_DATABASE: ${TASKS_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
       PROTO_ROOT: /app/proto
     depends_on:
       postgres:
-        condition: service_healthy
-      files-service:
         condition: service_healthy
     healthcheck:
       test:
@@ -159,4 +157,3 @@ services:
 
 volumes:
   postgres-data:
-  files-storage:

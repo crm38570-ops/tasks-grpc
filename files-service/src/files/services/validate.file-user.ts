@@ -7,7 +7,7 @@ export interface FileOwnership {
   userId: string;
 }
 
-export const validateFileUser = (fileOwnership: FileOwnership) => {
+export const validateFileUser = (fileOwnership: FileOwnership): FileEntity => {
   const { file, userId } = fileOwnership;
 
   if (!file)
@@ -21,4 +21,6 @@ export const validateFileUser = (fileOwnership: FileOwnership) => {
       code: status.NOT_FOUND,
       message: 'Файл не найден',
     });
+
+  return file;
 };

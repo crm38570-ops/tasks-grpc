@@ -7,6 +7,7 @@ import {
   PayloadTooLargeException,
   StreamableFile,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { ClientGrpc } from '@nestjs/microservices';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 import { UploadFileDto } from './dto';
@@ -22,19 +23,24 @@ import { validateSync } from 'class-validator';
 import { firstValueFrom, map, skip, Observable, ReplaySubject } from 'rxjs';
 import { Readable } from 'node:stream';
 import { eachValueFrom } from 'rxjs-for-await';
-
-const MAX_UPLOAD_SIZE = Number(process.env.MAX_UPLOAD_SIZE) || 10 * 1024 * 1024;
+import { withDeadline } from '../shared/with-deadline';
 
 @Injectable()
 export class FilesProxyService implements OnModuleInit {
   private readonly logger = new Logger('FilesProxyService', {
     timestamp: true,
   });
+  private readonly maxUploadSize: number;
+  private readonly grpcTimeoutMs: number;
   private filesService!: FilesServiceClient;
 
   constructor(
     @Inject('FILES_GRPC_CLIENT') private readonly client: ClientGrpc,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.maxUploadSize = configService.getOrThrow<number>('MAX_UPLOAD_SIZE');
+    this.grpcTimeoutMs = configService.getOrThrow<number>('GRPC_TIMEOUT_MS');
+  }
 
   onModuleInit() {
     this.filesService =
@@ -47,13 +53,13 @@ export class FilesProxyService implements OnModuleInit {
     this.logger.verbose(`Upload file request: userId=${userId}`);
 
     const contentLength = Number(request.headers['content-length']);
-    if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_SIZE) {
+    if (Number.isFinite(contentLength) && contentLength > this.maxUploadSize) {
       throw new PayloadTooLargeException('File is too large');
     }
 
     const bb = busboy({
       headers: request.headers,
-      limits: { fileSize: MAX_UPLOAD_SIZE },
+      limits: { fileSize: this.maxUploadSize },
     });
 
     const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
@@ -74,7 +80,6 @@ export class FilesProxyService implements OnModuleInit {
           metadata: {
             fileName,
             mimeType,
-            size: 0,
             taskId,
             userId,
           },
@@ -107,7 +112,7 @@ export class FilesProxyService implements OnModuleInit {
       });
 
       bb.on('file', (name: string, stream: Readable, info) => {
-        if (name !== 'file') {
+        if (name !== 'file' || filePart) {
           stream.resume();
           return;
         }
@@ -121,6 +126,10 @@ export class FilesProxyService implements OnModuleInit {
           fileName,
           mimeType,
         };
+
+        stream.on('limit', () =>
+          subscriber.error(new PayloadTooLargeException('File is too large')),
+        );
 
         tryStart();
       });
@@ -147,7 +156,12 @@ export class FilesProxyService implements OnModuleInit {
       `List files request: userId=${userId}, taskId=${taskId}`,
     );
 
-    return firstValueFrom(this.filesService.listFiles({ taskId, userId }));
+    return firstValueFrom(
+      withDeadline(
+        this.filesService.listFiles({ taskId, userId }),
+        this.grpcTimeoutMs,
+      ),
+    );
   }
 
   async downloadFile(
@@ -169,7 +183,9 @@ export class FilesProxyService implements OnModuleInit {
 
     request.once('close', () => subscription.unsubscribe());
 
-    const firstResponse = await firstValueFrom(responseSubject);
+    const firstResponse = await firstValueFrom(
+      withDeadline(responseSubject, this.grpcTimeoutMs),
+    );
 
     if (!firstResponse.metadata) {
       subscription.unsubscribe();
@@ -187,9 +203,11 @@ export class FilesProxyService implements OnModuleInit {
 
     const { mimeType, fileName } = firstResponse.metadata;
 
+    const safeFileName = fileName.replace(/["\\\r\n]/g, '_');
+
     return new StreamableFile(fileReadableStream, {
       type: mimeType,
-      disposition: `attachment; filename="${fileName}"`,
+      disposition: `attachment; filename="${safeFileName}"`,
     });
   }
 
@@ -200,6 +218,11 @@ export class FilesProxyService implements OnModuleInit {
       `Delete file request: fileId=${fileId}, taskId=${taskId}, userId=${userId}`,
     );
 
-    return firstValueFrom(this.filesService.deleteFile({ fileId, userId }));
+    return firstValueFrom(
+      withDeadline(
+        this.filesService.deleteFile({ fileId, userId, taskId }),
+        this.grpcTimeoutMs,
+      ),
+    );
   }
 }

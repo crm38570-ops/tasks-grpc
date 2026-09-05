@@ -4,7 +4,7 @@ import type {
   ListFilesResponse,
   UploadFileResponse,
 } from '../proto/files/generated/files_service';
-import { GrpcMethod, GrpcStreamCall, RpcException } from '@nestjs/microservices';
+import { GrpcMethod, GrpcStreamCall } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
 import { Readable } from 'node:stream';
 import { FilesService } from './files.service';
@@ -28,11 +28,7 @@ export class FilesController {
     request: Readable,
     callback: (err: unknown, res?: UploadFileResponse) => void,
   ): void {
-    this.filesService.saveFile(request).then(
-      (res) => callback(null, res),
-      (err: unknown) =>
-        callback(err instanceof RpcException ? err.getError() : err),
-    );
+    this.filesService.saveFile(request, callback);
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
@@ -48,7 +44,7 @@ export class FilesController {
   @GrpcMethod('FilesService', 'DeleteFile')
   async deleteFile(deleteFileRequest: DeleteFileRequestDto): Promise<void> {
     this.logger.verbose(
-      `Delete file request received: fileId=${deleteFileRequest.fileId}, userId=${deleteFileRequest.userId}`,
+      `Delete file request received: fileId=${deleteFileRequest.fileId}, taskId=${deleteFileRequest.taskId}, userId=${deleteFileRequest.userId}`,
     );
     return this.filesService.deleteFile(deleteFileRequest);
   }
