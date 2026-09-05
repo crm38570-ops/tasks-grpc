@@ -62,6 +62,8 @@ export class FilesProxyService implements OnModuleInit {
       limits: { fileSize: this.maxUploadSize },
     });
 
+    let requestError: Error | undefined;
+
     const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
       let taskId: string | undefined;
       let filePart:
@@ -102,7 +104,8 @@ export class FilesProxyService implements OnModuleInit {
         );
 
         if (errors.length > 0) {
-          subscriber.error(new BadRequestException(errors));
+          requestError ??= new BadRequestException(errors);
+          filePart?.stream.resume();
           return;
         }
 
@@ -137,8 +140,26 @@ export class FilesProxyService implements OnModuleInit {
       bb.on('limit', () =>
         subscriber.error(new PayloadTooLargeException('File is too large')),
       );
-      bb.on('close', () => subscriber.complete());
-      bb.on('error', (err: Error) => subscriber.error(err));
+      bb.on('error', (err: Error) => {
+        requestError ??= new BadRequestException('Некорректное тело запроса');
+        subscriber.error(err);
+      });
+      bb.on('close', () => {
+        if (!started) {
+          requestError ??= new BadRequestException(
+            'Обязательны multipart-поля taskId и file',
+          );
+        }
+        subscriber.complete();
+      });
+      request.on('end', () => {
+        if (!started) {
+          requestError ??= new BadRequestException(
+            'Обязательны multipart-поля taskId и file',
+          );
+          subscriber.complete();
+        }
+      });
 
       request.pipe(bb);
       return () => {
@@ -146,7 +167,11 @@ export class FilesProxyService implements OnModuleInit {
       };
     });
 
-    return firstValueFrom(this.filesService.uploadFile(grpcRequest$));
+    try {
+      return await firstValueFrom(this.filesService.uploadFile(grpcRequest$));
+    } catch (err) {
+      throw requestError ?? err;
+    }
   }
 
   getListFiles(taskId: string, request: AuthedRequest) {
