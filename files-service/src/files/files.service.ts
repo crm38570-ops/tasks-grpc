@@ -19,6 +19,7 @@ import { validateFileName } from './services/validate.file-name';
 import { validateFileUser } from './services/validate.file-user';
 import { UploadFileRequestDto } from '../dto/upload-file.request.dto';
 import { validateUploadFileRequest } from './services/validate.upload-file.request';
+import { toGrpcError } from '../common/filters/to-grpc-error';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { TaskOwnershipService } from './tasks-internal/task-ownership.service';
@@ -53,7 +54,19 @@ export class FilesService {
     }
   }
 
-  async saveFile(uploadFileRequest: Readable): Promise<UploadFileResponse> {
+  saveFile(
+    request: Readable,
+    callback: (err: unknown, res?: UploadFileResponse) => void,
+  ): void {
+    this.handleUpload(request).then(
+      (res) => callback(null, res),
+      (err: unknown) => callback(toGrpcError(err)),
+    );
+  }
+
+  private async handleUpload(
+    request: Readable,
+  ): Promise<UploadFileResponse> {
     const fileId = randomUUID();
     const filePath = join(this.fileDir, fileId);
     const writeStream = createWriteStream(filePath);
@@ -62,7 +75,7 @@ export class FilesService {
     let firstMessage: UploadFileRequestDto | undefined;
 
     try {
-      for await (const raw of uploadFileRequest) {
+      for await (const raw of request) {
         const message = raw as UploadFileRequestDto;
         if (!firstMessage) {
           validateUploadFileRequest(message);
