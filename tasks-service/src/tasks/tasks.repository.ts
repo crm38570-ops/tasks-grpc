@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, UpdateResult } from 'typeorm';
 import { Task } from './task.entity';
 import { CreateTaskDto, GetTasksFilterDto } from './dto';
 import { TaskStatus } from './enums/task-status.enum';
@@ -54,11 +54,17 @@ export class TasksRepository extends Repository<Task> {
 
     if (status) query.andWhere('task.status = :status', { status });
 
-    if (searchQuery)
+    if (searchQuery) {
+      const escaped = searchQuery
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+
       query.andWhere(
         '(LOWER(task.title) LIKE LOWER(:searchQuery) OR LOWER(task.description) LIKE LOWER(:searchQuery))',
-        { searchQuery: `%${searchQuery}%` },
+        { searchQuery: `%${escaped}%` },
       );
+    }
 
     try {
       const tasks = await query.getMany();
@@ -80,22 +86,36 @@ export class TasksRepository extends Repository<Task> {
     return this.delete(id);
   }
 
-  async updateTaskStatus(task: Task): Promise<Task> {
-    let saved: Task;
+  async updateTaskStatus(
+    id: string,
+    userId: string,
+    status: TaskStatus,
+  ): Promise<Task | null> {
+    let result: UpdateResult;
 
     try {
-      saved = await this.save(task);
+      result = await this.createQueryBuilder()
+        .update(Task)
+        .set({ status })
+        .where('"id" = :id AND "userId" = :userId', { id, userId })
+        .returning('*')
+        .execute();
     } catch (error) {
       this.logger.error(
-        `Failed to update task "${task.id}" status to "${task.status}"`,
+        `Failed to update task "${id}" status to "${status}" for user "${userId}"`,
         error,
       );
       throw new InternalServerErrorException();
     }
 
-    this.logger.log(
-      `Task "${saved.title}" status updated to "${saved.status}"`,
-    );
-    return saved;
+    const updated = (result.raw as Task[])[0] ?? null;
+
+    if (updated) {
+      this.logger.log(
+        `Task "${updated.title}" status updated to "${updated.status}"`,
+      );
+    }
+
+    return updated;
   }
 }

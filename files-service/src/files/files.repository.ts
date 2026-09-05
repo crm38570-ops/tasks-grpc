@@ -3,7 +3,6 @@ import { DataSource, Repository } from 'typeorm';
 import {
   DeleteFileRequest,
   DownloadFileRequest,
-  FileMetadataRequest,
   FileMetadataResponse,
   ListFilesRequest,
 } from '../proto/files/generated/files_service';
@@ -16,10 +15,8 @@ export class FilesRepository extends Repository<FileEntity> {
     super(FileEntity, dataSource.createEntityManager());
   }
 
-  async saveFile(
-    fileMetadataRequest: FileMetadataRequest & { fileId: string },
-  ): Promise<FileEntity> {
-    return await this.save(this.create(fileMetadataRequest));
+  async saveFile(file: Omit<FileEntity, 'uploadedAt'>): Promise<FileEntity> {
+    return await this.save(this.create(file));
   }
 
   getFile(fileId: string): Promise<FileEntity | null> {
@@ -31,7 +28,20 @@ export class FilesRepository extends Repository<FileEntity> {
   ): Promise<FileMetadataResponse[]> {
     const query = this.createQueryBuilder('file');
 
-    return await query.where({ ...listFilesRequest }).getMany();
+    const files = await query.where({ ...listFilesRequest }).getMany();
+
+    return files.map((file) => this.toMetadataResponse(file));
+  }
+
+  private toMetadataResponse(file: FileEntity): FileMetadataResponse {
+    return {
+      fileId: file.fileId,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      size: Number(file.size),
+      taskId: file.taskId,
+      uploadedAt: file.uploadedAt.toISOString(),
+    };
   }
 
   async deleteFile(

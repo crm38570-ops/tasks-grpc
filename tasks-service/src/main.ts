@@ -6,17 +6,17 @@ import microserviceOptions from './microservice-options';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
-  const port = Number(process.env.GRPC_PORT ?? 50052);
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
     microserviceOptions,
   );
-
   app.enableShutdownHooks();
 
   await app.listen();
-  logger.log(`Application started: transport=grpc, address=0.0.0.0:${port}`);
+  logger.log(
+    `Application started: transport=grpc, address=${microserviceOptions.options.url}`,
+  );
 }
 
 bootstrap().catch((error: unknown) => {

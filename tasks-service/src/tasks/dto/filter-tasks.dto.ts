@@ -1,5 +1,5 @@
 import { TaskStatus } from '../enums/task-status.enum';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class GetTasksFilterDto {
   @IsOptional()
@@ -8,5 +8,6 @@ export class GetTasksFilterDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   searchQuery?: string;
 }

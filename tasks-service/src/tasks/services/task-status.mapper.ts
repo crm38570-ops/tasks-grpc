@@ -4,5 +4,10 @@ import { TaskStatus as GrpcTaskStatus } from '../../proto/tasks/generated/tasks_
 export const toGrpcStatus = (status: TaskStatus): GrpcTaskStatus =>
   GrpcTaskStatus[`TASK_STATUS_${status}` as keyof typeof GrpcTaskStatus];
 
-export const toEntityStatus = (status: GrpcTaskStatus): TaskStatus =>
-  GrpcTaskStatus[status].replace('TASK_STATUS_', '') as TaskStatus;
+export const toEntityStatus = (status: GrpcTaskStatus): TaskStatus => {
+  const mapped = GrpcTaskStatus[status];
+  if (!mapped?.startsWith('TASK_STATUS_')) {
+    throw new Error(`Unknown task status: ${status}`);
+  }
+  return mapped.replace('TASK_STATUS_', '') as TaskStatus;
+};

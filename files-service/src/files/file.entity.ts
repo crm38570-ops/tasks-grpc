@@ -2,9 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+@Index('IDX_task_id_user_id', ['taskId', 'userId'])
 @Entity('file')
 export class FileEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -26,5 +28,5 @@ export class FileEntity {
   userId: string;
 
   @CreateDateColumn()
-  uploadedAt: string;
+  uploadedAt: Date;
 }
