@@ -2,6 +2,28 @@
 
 Журнал архитектурных решений. Новые записи добавляются сверху.
 
+## 05.09.2026 — Единый бутстрап gRPC-сервисов: `NestFactory.createMicroservice`
+
+**Решение.** tasks-service переведён с гибридного бутстрапа
+(`NestFactory.create` + `connectMicroservice` + `startAllMicroservices`) на
+`NestFactory.createMicroservice` — как у auth-service и files-service. Опции —
+дефолтный экспорт `microservice-options.ts`, env читается через
+`dotenv.config({ path: '.env.stage.${STAGE} '})` на этапе импорта (паттерн
+`data-source.ts`), конфигурация через `ConfigService` в bootstrap больше не
+используется.
+
+**Причина.** Гибридный режим нужен только когда сервис совмещает HTTP и gRPC
+(REST-контроллеры, Swagger, health-check). У tasks-service оба контроллера —
+`@GrpcMethod`, HTTP-сервер не слушался. Отличие в двух proto-пакетах
+(`tasks` + `tasks_internal`) касается только опций, не способа бутстрапа.
+
+**Нюанс.** Чтение env на этапе импорта (стиль auth) не видит значений из
+`.env.stage.*`, которые загружает ConfigModule уже при инициализации приложения.
+Поэтому в `microservice-options.ts` явно вызывается `dotenv.config()` — иначе
+поведение отличалось бы от прежнего (env-файл игнорировался бы).
+
+**Внедрено.** `tasks-service/consistent-bootstrap`.
+
 ## 04.09.2026 — Shared-пакет `@mcs/shared` через `file:`-зависимость, без workspaces
 
 **Решение.** Общая инфраструктура (генератор прото, позднее — фабрика data-source и
