@@ -12,7 +12,6 @@ import { ListFilesRequestDto } from '../dto/list-files.request.dto';
 import { DeleteFileRequestDto } from '../dto/delete-file.request.dto';
 import { DownloadFileRequestDto } from '../dto/download-file.request.dto';
 import { RpcValidationPipe } from '../pipes/validation.pipe';
-import { toGrpcError } from '../common/filters/to-grpc-error';
 
 @Controller()
 @UsePipes(RpcValidationPipe)
@@ -29,10 +28,7 @@ export class FilesController {
     request: Readable,
     callback: (err: unknown, res?: UploadFileResponse) => void,
   ): void {
-    this.filesService.saveFile(request).then(
-      (res) => callback(null, res),
-      (err: unknown) => callback(toGrpcError(err)),
-    );
+    this.filesService.saveFile(request, callback);
   }
 
   @GrpcMethod('FilesService', 'ListFiles')
