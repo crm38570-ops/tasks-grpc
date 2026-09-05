@@ -36,6 +36,7 @@ services:
       DB_DATABASE: ${AUTH_DB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      DUMMY_BCRYPT_HASH: ${DUMMY_BCRYPT_HASH}
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +99,7 @@ services:
       PROTO_PATH: /app/proto/files/files_service.proto
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
       TASKS_GRPC_TIMEOUT_MS: ${TASKS_GRPC_TIMEOUT_MS}
+      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USERNAME: ${POSTGRES_USER}

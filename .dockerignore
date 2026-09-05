@@ -1,5 +1,7 @@
 **/node_modules
 **/dist
+!shared/dist
+!shared/dist/**
 **/coverage
 **/.env
 **/.env.*
