@@ -1,22 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { getMicroserviceOptions } from './microservice-options';
+import microserviceOptions from './microservice-options';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap', { timestamp: true });
 
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);
-
-  app.connectMicroservice(getMicroserviceOptions(configService));
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    microserviceOptions,
+  );
   app.enableShutdownHooks();
 
-  await app.startAllMicroservices();
-  await app.init();
+  await app.listen();
   logger.log(
-    `Application started: transport=grpc, address=0.0.0.0:${configService.get('GRPC_PORT')}`,
+    `Application started: transport=grpc, address=${microserviceOptions.options.url}`,
   );
 }
 
