@@ -24,6 +24,21 @@ export const withDeadline = <T>(
             }),
         );
       }
+
+      const grpcError = err as { code?: unknown; details?: unknown };
+      if (
+        typeof grpcError?.code === 'number' &&
+        typeof grpcError?.details === 'string'
+      ) {
+        return throwError(
+          () =>
+            new RpcException({
+              code: grpcError.code as status,
+              message: grpcError.details,
+            }),
+        );
+      }
+
       return throwError(() => err);
     }),
   );

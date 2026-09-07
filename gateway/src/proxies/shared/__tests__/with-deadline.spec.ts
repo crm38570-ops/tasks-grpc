@@ -25,6 +25,25 @@ describe(`withDeadline`, () => {
     });
   });
 
+  it('оборачивает сырую grpc-js ошибку в RpcException', async () => {
+    const raw = Object.assign(
+      new Error('6 ALREADY_EXISTS: Username already exists'),
+      { code: status.ALREADY_EXISTS, details: 'Username already exists' },
+    );
+    const error = await lastValueFrom(
+      withDeadline(
+        throwError(() => raw),
+        1000,
+      ),
+    ).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(RpcException);
+    expect((error as RpcException).getError()).toEqual({
+      code: status.ALREADY_EXISTS,
+      message: 'Username already exists',
+    });
+  });
+
   it('пробрасывает остальные ошибки как есть', async () => {
     const original = new RpcException({
       code: status.NOT_FOUND,

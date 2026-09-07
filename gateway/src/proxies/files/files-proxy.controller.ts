@@ -3,7 +3,6 @@ import {
   Delete,
   Get,
   Param,
-  Post,
   Query,
   Req,
   StreamableFile,
@@ -14,12 +13,7 @@ import type { AuthedRequest } from '../../auth/jwt-auth.guard';
 import { FilesProxyService } from './files-proxy.service';
 import { TaskIdQueryDto, FileIdParamDto } from './dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  DeleteFileApi,
-  DownloadFileApi,
-  GetListFilesApi,
-  UploadFileApi,
-} from './swagger';
+import { DeleteFileApi, DownloadFileApi, GetListFilesApi } from './swagger';
 
 @ApiTags('Files')
 @ApiBearerAuth()
@@ -27,12 +21,6 @@ import {
 @UseGuards(JwtAuthGuard)
 export class FilesProxyController {
   constructor(private readonly filesProxyService: FilesProxyService) {}
-
-  @UploadFileApi()
-  @Post('upload')
-  uploadFile(@Req() request: AuthedRequest) {
-    return this.filesProxyService.uploadFile(request);
-  }
 
   @GetListFilesApi()
   @Get()
