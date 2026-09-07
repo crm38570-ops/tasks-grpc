@@ -4,6 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { SwaggerModule } from '@nestjs/swagger';
+import { JwtService } from '@nestjs/jwt';
 import { config } from './../src/swagger-config';
 
 interface OpenApiDocument {
@@ -103,10 +104,13 @@ describe('Gateway (e2e)', () => {
     const searchParameter = taskQueryParameters.find(
       (parameter) => parameter.name === 'searchQuery',
     );
+    const uploadOperation = document.paths['/tasks/{taskId}/files']?.post;
     const uploadSchema =
-      document.paths['/files/upload'].post.requestBody?.content?.[
-        'multipart/form-data'
-      ]?.schema;
+      uploadOperation?.requestBody?.content?.['multipart/form-data']?.schema;
+    const uploadParameters = uploadOperation?.parameters ?? [];
+    const taskIdParameter = uploadParameters.find(
+      (parameter) => parameter.name === 'taskId',
+    );
 
     expect(signupSchema?.required).toEqual(['username', 'password']);
     expect(Object.keys(signupSchema?.properties ?? {})).toEqual([
@@ -131,8 +135,22 @@ describe('Gateway (e2e)', () => {
       'DONE',
     ]);
     expect(searchParameter?.required).toBe(false);
+    expect(taskIdParameter?.required).toBe(true);
+    expect(uploadSchema?.required).toEqual(['file']);
     expect(uploadSchema?.properties?.file).toBeDefined();
-    expect(uploadSchema?.properties?.taskId).toBeDefined();
+    expect(uploadSchema?.properties?.taskId).toBeUndefined();
+    expect(document.paths['/files/upload']).toBeUndefined();
+  });
+
+  it('/tasks/:taskId/files (POST) валидирует taskId как UUID', async () => {
+    const jwtService = app.get(JwtService);
+    const token = jwtService.sign({ userId: 'user-1', username: 'ivan' });
+
+    await request(app.getHttpServer())
+      .post('/tasks/not-a-uuid/files')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('x'), { filename: 'a.txt' })
+      .expect(400);
   });
 
   afterEach(async () => {
