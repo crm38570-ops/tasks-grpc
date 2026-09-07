@@ -10,7 +10,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { ClientGrpc } from '@nestjs/microservices';
 import type { AuthedRequest } from '../../auth/jwt-auth.guard';
-import { UploadFileDto } from './dto';
 import type {
   DownloadFileResponse,
   FilesServiceClient,
@@ -24,6 +23,7 @@ import { firstValueFrom, map, skip, Observable, ReplaySubject } from 'rxjs';
 import { Readable } from 'node:stream';
 import { eachValueFrom } from 'rxjs-for-await';
 import { withDeadline } from '../shared/with-deadline';
+import { TaskIdParamDto } from './dto';
 
 @Injectable()
 export class FilesProxyService implements OnModuleInit {
@@ -47,10 +47,21 @@ export class FilesProxyService implements OnModuleInit {
       this.client.getService<FilesServiceClient>('FilesService');
   }
 
-  async uploadFile(request: AuthedRequest): Promise<UploadFileResponse> {
+  async uploadFile(
+    taskId: string,
+    request: AuthedRequest,
+  ): Promise<UploadFileResponse> {
     const { userId } = request.user;
 
-    this.logger.verbose(`Upload file request: userId=${userId}`);
+    this.logger.verbose(
+      `Upload file request: taskId=${taskId}, userId=${userId}`,
+    );
+
+    const errors = validateSync(plainToInstance(TaskIdParamDto, { taskId }));
+
+    if (errors.length > 0) {
+      throw new BadRequestException(errors);
+    }
 
     const contentLength = Number(request.headers['content-length']);
     if (Number.isFinite(contentLength) && contentLength > this.maxUploadSize) {
@@ -65,17 +76,17 @@ export class FilesProxyService implements OnModuleInit {
     let requestError: Error | undefined;
 
     const grpcRequest$ = new Observable<UploadFileRequest>((subscriber) => {
-      let taskId: string | undefined;
-      let filePart:
-        { stream: Readable; fileName: string; mimeType: string } | undefined;
-      let started = false;
+      let sawFile = false;
 
-      const tryStart = () => {
-        if (started || !taskId || !filePart) return;
+      bb.on('file', (name: string, stream: Readable, info) => {
+        if (name !== 'file' || sawFile) {
+          stream.resume();
+          return;
+        }
 
-        started = true;
+        sawFile = true;
 
-        const { fileName, mimeType } = filePart;
+        const { filename: fileName, mimeType } = info;
 
         subscriber.next({
           content: new Uint8Array(0),
@@ -87,78 +98,32 @@ export class FilesProxyService implements OnModuleInit {
           },
         });
 
-        filePart.stream.on('data', (chunk: Buffer) =>
+        stream.on('data', (chunk: Buffer) =>
           subscriber.next({ content: chunk, metadata: undefined }),
         );
-
-        filePart.stream.on('error', (error: Error) => subscriber.error(error));
-
-        filePart.stream.resume();
-      };
-
-      bb.on('field', (name: string, value: string) => {
-        if (name !== 'taskId') return;
-
-        const errors = validateSync(
-          plainToInstance(UploadFileDto, { taskId: value }),
-        );
-
-        if (errors.length > 0) {
-          requestError ??= new BadRequestException(errors);
-          filePart?.stream.resume();
-          return;
-        }
-
-        taskId = value;
-
-        tryStart();
-      });
-
-      bb.on('file', (name: string, stream: Readable, info) => {
-        if (name !== 'file' || filePart) {
-          stream.resume();
-          return;
-        }
-
-        const { filename: fileName, mimeType } = info;
-
-        stream.pause();
-
-        filePart = {
-          stream,
-          fileName,
-          mimeType,
-        };
 
         stream.on('limit', () =>
           subscriber.error(new PayloadTooLargeException('File is too large')),
         );
-
-        tryStart();
+        stream.on('error', (error: Error) => subscriber.error(error));
       });
 
       bb.on('limit', () =>
         subscriber.error(new PayloadTooLargeException('File is too large')),
       );
-      bb.on('error', (err: Error) => {
+      bb.on('error', (_err: Error) => {
         requestError ??= new BadRequestException('Некорректное тело запроса');
-        subscriber.error(err);
+        subscriber.error(requestError);
       });
       bb.on('close', () => {
-        if (!started) {
+        if (!sawFile) {
           requestError ??= new BadRequestException(
-            'Обязательны multipart-поля taskId и file',
+            'Обязательное multipart-поле file',
           );
+          subscriber.error(requestError);
+          return;
         }
         subscriber.complete();
-      });
-      request.on('end', () => {
-        if (!started) {
-          requestError ??= new BadRequestException(
-            'Обязательны multipart-поля taskId и file',
-          );
-          subscriber.complete();
-        }
       });
 
       request.pipe(bb);

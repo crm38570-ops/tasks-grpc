@@ -31,7 +31,10 @@ describe(`withDeadline`, () => {
       { code: status.ALREADY_EXISTS, details: 'Username already exists' },
     );
     const error = await lastValueFrom(
-      withDeadline(throwError(() => raw), 1000),
+      withDeadline(
+        throwError(() => raw),
+        1000,
+      ),
     ).catch((err: unknown) => err);
 
     expect(error).toBeInstanceOf(RpcException);
