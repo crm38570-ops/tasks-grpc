@@ -26,7 +26,6 @@ services:
     restart: unless-stopped
     environment:
       STAGE: ${STAGE:-dev}
-      PORT: ${AUTH_PORT}
       GRPC_PORT: ${AUTH_GRPC_PORT}
       PROTO_PATH: /app/proto/auth/auth_service.proto
       DB_HOST: postgres
@@ -132,7 +131,6 @@ services:
     restart: unless-stopped
     environment:
       STAGE: ${STAGE:-dev}
-      PORT: ${TASKS_PORT}
       GRPC_PORT: ${TASKS_GRPC_PORT}
       DB_HOST: postgres
       DB_PORT: 5432
