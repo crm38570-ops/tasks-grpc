@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { GatewayModule } from './gateway/gateway.module';
 import { AuthProxyModule } from './auth/auth-proxy.module';
 import { TasksProxyModule } from './tasks/tasks-proxy.module';
-import { FilesProxyModule } from './proxies/files/files-proxy.module';
 import { configValidationSchema } from './config.schema';
 import { APP_FILTER } from '@nestjs/core';
 import { RpcExceptionFilter } from './filters/rpc-exception.filter';
@@ -26,7 +25,6 @@ import { RpcExceptionFilter } from './filters/rpc-exception.filter';
     GatewayModule,
     AuthProxyModule,
     TasksProxyModule,
-    FilesProxyModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: RpcExceptionFilter }],
 })
