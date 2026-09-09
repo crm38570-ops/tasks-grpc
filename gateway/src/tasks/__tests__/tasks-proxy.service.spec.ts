@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import {
   TaskStatus,
   type TaskResponse,
-} from '../../../proto/tasks/generated/tasks_service';
+} from '../../proto/tasks/generated/tasks_service';
 import type {
   CreateTaskDto,
   GetTasksFilterDto,

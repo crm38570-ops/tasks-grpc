@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { AuthServiceClient } from '../../proto/auth/generated/auth_service';
+import { AuthServiceClient } from '../proto/auth/generated/auth_service';
 import type { SignUpDto, SignInDto } from './dto';
 import { withDeadline } from '../shared/with-deadline';
 

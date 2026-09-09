@@ -1,5 +1,5 @@
-import { TaskStatus as GrpcTaskStatus } from '../../proto/tasks/generated/tasks_service';
-import type { TaskResponse } from '../../proto/tasks/generated/tasks_service';
+import { TaskStatus as GrpcTaskStatus } from '../proto/tasks/generated/tasks_service';
+import type { TaskResponse } from '../proto/tasks/generated/tasks_service';
 import { TaskStatusDto } from './dto/task-status.enum';
 
 export const toGrpcStatus = (status: TaskStatusDto): GrpcTaskStatus =>

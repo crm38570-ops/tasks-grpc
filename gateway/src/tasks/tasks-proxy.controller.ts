@@ -10,8 +10,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
-import type { AuthedRequest } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { AuthedRequest } from '../auth/jwt-auth.guard';
 import { TasksProxyService } from './tasks-proxy.service';
 import {
   CreateTaskDto,

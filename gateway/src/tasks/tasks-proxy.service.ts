@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { TasksServiceClient } from '../../proto/tasks/generated/tasks_service';
+import { TasksServiceClient } from '../proto/tasks/generated/tasks_service';
 import type {
   CreateTaskDto,
   GetTasksFilterDto,

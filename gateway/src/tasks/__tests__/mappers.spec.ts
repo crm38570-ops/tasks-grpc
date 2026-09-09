@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { TaskStatus } from '../../../proto/tasks/generated/tasks_service';
+import { TaskStatus } from '../../proto/tasks/generated/tasks_service';
 import { TaskStatusDto } from '../dto/task-status.enum';
 import { fromGrpcStatus, mapTask, toGrpcStatus } from '../mappers';
 

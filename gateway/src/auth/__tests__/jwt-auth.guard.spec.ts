@@ -18,7 +18,7 @@ describe(`JwtAuthGuard`, () => {
     ['нет заголовка Authorization', {}],
     ['тип не Bearer', { authorization: 'Basic abc' }],
     ['Bearer без токена', { authorization: 'Bearer ' }],
-  ] as [string, Record<string, string>][])(
+  ] as [string, Record<string, string>][]) (
     'кидает Unauthorized, если %s',
     (_name, headers) => {
       const verify = jest.fn();
