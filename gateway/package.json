@@ -17,13 +17,12 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "cross-env STAGE=dev PORT=3000 AUTH_GRPC_URL=localhost:50051 TASKS_GRPC_URL=localhost:50052 FILES_GRPC_URL=localhost:50051 JWT_SECRET=test-secret CORS_ORIGINS=http://localhost:3000 MAX_UPLOAD_SIZE=1048576 GRPC_TIMEOUT_MS=5000 NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
+    "test:e2e": "cross-env STAGE=dev PORT=3000 AUTH_GRPC_URL=localhost:50051 TASKS_GRPC_URL=localhost:50052 JWT_SECRET=test-secret CORS_ORIGINS=http://localhost:3000 GRPC_TIMEOUT_MS=5000 NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
     "proto:gen": "node node_modules/@mcs/shared/scripts/generate-protos.js"
   },
   "mcs": {
     "protos": [
       "auth",
-      "files",
       "tasks"
     ]
   },
@@ -38,7 +37,6 @@
     "@nestjs/microservices": "^12.0.1",
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/swagger": "^12.0.1",
-    "busboy": "^1.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cross-env": "^10.1.0",
@@ -53,7 +51,6 @@
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
-    "@types/busboy": "^1.5.4",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.4.1",
