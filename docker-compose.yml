@@ -61,7 +61,6 @@ services:
       PORT: ${GATEWAY_PORT}
       AUTH_GRPC_URL: auth-service:${AUTH_GRPC_PORT}
       TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
-      FILES_GRPC_URL: files-service:${FILES_GRPC_PORT}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS}
       MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
@@ -73,8 +72,6 @@ services:
         condition: service_healthy
       tasks-service:
         condition: service_healthy
-      files-service:
-        condition: service_healthy
     healthcheck:
       test:
         [
@@ -82,43 +79,6 @@ services:
           "node",
           "-e",
           "require('node:http').get('http://127.0.0.1:${GATEWAY_PORT}/health', response => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  files-service:
-    build:
-      context: .
-      dockerfile: files-service/Dockerfile
-    restart: unless-stopped
-    environment:
-      STAGE: ${STAGE:-dev}
-      GRPC_PORT: ${FILES_GRPC_PORT}
-      PROTO_PATH: /app/proto/files/files_service.proto
-      TASKS_GRPC_URL: tasks-service:${TASKS_GRPC_PORT}
-      TASKS_GRPC_TIMEOUT_MS: ${TASKS_GRPC_TIMEOUT_MS}
-      MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_DATABASE: ${FILES_DB_DATABASE}
-      FILE_DIR: /app/storage
-    volumes:
-      - ./files-service/storage/:/app/storage
-    depends_on:
-      postgres:
-        condition: service_healthy
-      tasks-service:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "require('node:net').connect(${FILES_GRPC_PORT}, '127.0.0.1').on('connect', function() { this.end(); process.exit(0); }).on('error', () => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
