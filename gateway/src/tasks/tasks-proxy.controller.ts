@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthedRequest } from '../auth/jwt-auth.guard';
 import { TasksProxyService } from './tasks-proxy.service';
 import {
   CreateTaskDto,
@@ -27,6 +26,7 @@ import {
   GetTasksApi,
   UpdateTaskStatusApi,
 } from './swagger';
+import type { AuthedRequest } from '../auth/types/authed-request.interface';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
