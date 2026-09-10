@@ -3,7 +3,11 @@ import { AuthService } from './auth.service';
 import { AuthCredentialsDto, UserResponseDto } from './dto';
 import { GrpcMethod } from '@nestjs/microservices';
 import { JwtAccessTokenDto } from './dto/jwt-access-token.dto';
-import { AuthServiceController } from '../proto/auth/generated/auth_service';
+import type {
+  AuthServiceController,
+  VerifyUserRequest,
+  VerifyUserResponse,
+} from '../proto/auth/generated/auth_service';
 
 @Controller('auth')
 export class AuthController implements AuthServiceController {
@@ -23,5 +27,10 @@ export class AuthController implements AuthServiceController {
   ): Promise<JwtAccessTokenDto> {
     this.logger.verbose(`User "${authCredentialsDto.username}" signing in`);
     return this.authService.signIn(authCredentialsDto);
+  }
+
+  @GrpcMethod('AuthService', 'VerifyUser')
+  async verifyUser(request: VerifyUserRequest): Promise<VerifyUserResponse> {
+    return this.authService.verifyUser(request.userId);
   }
 }
