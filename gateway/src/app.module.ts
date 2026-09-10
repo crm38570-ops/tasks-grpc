@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { GatewayModule } from './gateway/gateway.module';
+import { HealthModule } from './health/health.module';
 import { AuthProxyModule } from './auth/auth-proxy.module';
 import { TasksProxyModule } from './tasks/tasks-proxy.module';
 import { configValidationSchema } from './config.schema';
@@ -22,7 +22,7 @@ import { RpcExceptionFilter } from './filters/rpc-exception.filter';
         secret: configService.getOrThrow('JWT_SECRET'),
       }),
     }),
-    GatewayModule,
+    HealthModule,
     AuthProxyModule,
     TasksProxyModule,
   ],

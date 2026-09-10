@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('System')
 @Controller()
-export class GatewayController {
+export class HealthController {
   @ApiOperation({ summary: 'Проверка состояния gateway' })
   @ApiResponse({ status: 200, description: 'Gateway работает' })
   @Get('health')
