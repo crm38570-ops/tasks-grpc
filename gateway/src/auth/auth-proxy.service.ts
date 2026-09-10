@@ -38,4 +38,10 @@ export class AuthProxyService implements OnModuleInit {
       withDeadline(this.authService.signIn(dto), this.grpcTimeoutMs),
     );
   }
+
+  verifyUser(userId: string) {
+    return lastValueFrom(
+      withDeadline(this.authService.verifyUser({ userId }), this.grpcTimeoutMs),
+    );
+  }
 }
