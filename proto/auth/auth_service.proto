@@ -26,8 +26,7 @@ message VerifyUserRequest {
 }
 
 message VerifyUserResponse {
-  string id       = 1;
-  string username = 2;
+  bool valid = 1;
 }
 
 service AuthService {

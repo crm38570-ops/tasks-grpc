@@ -59,4 +59,9 @@ export class AuthService {
 
     return { accessToken };
   }
+
+  async verifyUser(userId: string) {
+    const find = await this.usersRepository.findOne({ where: { id: userId } });
+    return { valid: find ? true : false };
+  }
 }

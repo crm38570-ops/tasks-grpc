@@ -21,7 +21,16 @@ message SignInResponse {
   string access_token = 1;
 }
 
+message VerifyUserRequest {
+  string user_id = 1;
+}
+
+message VerifyUserResponse {
+  bool valid = 1;
+}
+
 service AuthService {
   rpc SignUp (SignUpRequest) returns (SignUpResponse);
   rpc SignIn (SignInRequest) returns (SignInResponse);
+  rpc VerifyUser(VerifyUserRequest) returns (VerifyUserResponse);
 }
