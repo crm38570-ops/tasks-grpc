@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +25,7 @@ import {
   GetTasksApi,
   UpdateTaskStatusApi,
 } from './swagger';
-import type { AuthedRequest } from '../auth/types/authed-request.interface';
+import { GetUserId } from './decorators/get.user.id';
 
 @ApiTags('Tasks')
 @ApiBearerAuth()
@@ -39,30 +38,27 @@ export class TasksProxyController {
   @Post()
   createTask(
     @Body() createTaskDto: CreateTaskDto,
-    @Req() request: AuthedRequest,
+    @GetUserId() userId: string,
   ) {
-    return this.tasksProxyService.createTask(
-      createTaskDto,
-      request.user.userId,
-    );
+    return this.tasksProxyService.createTask(createTaskDto, userId);
   }
 
   @GetTasksApi()
   @Get()
-  getTasks(@Query() filter: GetTasksFilterDto, @Req() request: AuthedRequest) {
-    return this.tasksProxyService.getTasks(filter, request.user.userId);
+  getTasks(@Query() filter: GetTasksFilterDto, @GetUserId() userId: string) {
+    return this.tasksProxyService.getTasks(filter, userId);
   }
 
   @GetTaskByIdApi()
   @Get(':id')
-  getTask(@Param() { id }: TaskIdParamDto, @Req() request: AuthedRequest) {
-    return this.tasksProxyService.getTaskById(id, request.user.userId);
+  getTask(@Param() { id }: TaskIdParamDto, @GetUserId() userId: string) {
+    return this.tasksProxyService.getTaskById(id, userId);
   }
 
   @DeleteTaskApi()
   @Delete(':id')
-  deleteTask(@Param() { id }: TaskIdParamDto, @Req() request: AuthedRequest) {
-    return this.tasksProxyService.deleteTask(id, request.user.userId);
+  deleteTask(@Param() { id }: TaskIdParamDto, @GetUserId() userId: string) {
+    return this.tasksProxyService.deleteTask(id, userId);
   }
 
   @UpdateTaskStatusApi()
@@ -70,12 +66,12 @@ export class TasksProxyController {
   updateTaskStatus(
     @Param() { id }: TaskIdParamDto,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
-    @Req() request: AuthedRequest,
+    @GetUserId() userId: string,
   ) {
     return this.tasksProxyService.updateTaskStatus(
       id,
       updateTaskStatusDto,
-      request.user.userId,
+      userId,
     );
   }
 }
