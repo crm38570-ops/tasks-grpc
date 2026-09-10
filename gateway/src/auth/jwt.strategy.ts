@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from './types/jwt.payload.interface';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthProxyService } from './auth-proxy.service';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -21,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const { userId } = payload;
 
-    if (!userId) {
+    if (!userId || !isUUID(userId, '4')) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
