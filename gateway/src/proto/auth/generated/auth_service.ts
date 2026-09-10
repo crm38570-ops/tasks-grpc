@@ -29,23 +29,37 @@ export interface SignInResponse {
   accessToken: string;
 }
 
+export interface VerifyUserRequest {
+  userId: string;
+}
+
+export interface VerifyUserResponse {
+  valid: boolean;
+}
+
 export const AUTH_PACKAGE_NAME = "auth";
 
 export interface AuthServiceClient {
   signUp(request: SignUpRequest): Observable<SignUpResponse>;
 
   signIn(request: SignInRequest): Observable<SignInResponse>;
+
+  verifyUser(request: VerifyUserRequest): Observable<VerifyUserResponse>;
 }
 
 export interface AuthServiceController {
   signUp(request: SignUpRequest): Promise<SignUpResponse> | Observable<SignUpResponse> | SignUpResponse;
 
   signIn(request: SignInRequest): Promise<SignInResponse> | Observable<SignInResponse> | SignInResponse;
+
+  verifyUser(
+    request: VerifyUserRequest,
+  ): Promise<VerifyUserResponse> | Observable<VerifyUserResponse> | VerifyUserResponse;
 }
 
 export function AuthServiceControllerMethods() {
   return function (constructor: Function) {
-    const grpcMethods: string[] = ["signUp", "signIn"];
+    const grpcMethods: string[] = ["signUp", "signIn", "verifyUser"];
     for (const method of grpcMethods) {
       const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
       GrpcMethod("AuthService", method)(constructor.prototype[method], method, descriptor);
