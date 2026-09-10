@@ -63,9 +63,7 @@ export class TasksService {
 
     this.logger.log(`Getting task "${id}" for user "${userId}"`);
 
-    const found = await this.tasksRepository.findOne({
-      where: { id, userId },
-    });
+    const found = await this.tasksRepository.getTaskById(id, userId);
 
     if (!found) {
       this.logger.warn(`Task "${id}" not found for user "${userId}"`);
@@ -83,7 +81,7 @@ export class TasksService {
     let result: DeleteResult;
 
     try {
-      result = await this.tasksRepository.delete({ id, userId });
+      result = await this.tasksRepository.deleteTaskById(id, userId);
     } catch (error) {
       this.logger.error(
         `Failed to delete task "${id}" for user "${userId}"`,
