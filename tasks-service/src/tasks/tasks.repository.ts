@@ -78,12 +78,12 @@ export class TasksRepository extends Repository<Task> {
     }
   }
 
-  async getTaskById(id: string) {
-    return this.findOne({ where: { id } });
+  async getTaskById(id: string, userId: string) {
+    return this.findOne({ where: { id, userId } });
   }
 
-  async deleteTaskById(id: string) {
-    return this.delete(id);
+  async deleteTaskById(id: string, userId: string) {
+    return this.delete({ id, userId });
   }
 
   async updateTaskStatus(
