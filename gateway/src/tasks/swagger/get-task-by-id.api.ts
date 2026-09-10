@@ -1,6 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { TaskResponseDto } from '../dto';
+import { ApiOperation, ApiParam } from '@nestjs/swagger';
 
 export function GetTaskByIdApi() {
   return applyDecorators(
@@ -11,13 +10,5 @@ export function GetTaskByIdApi() {
       format: 'uuid',
       description: 'UUID задачи',
     }),
-    ApiResponse({
-      status: 200,
-      description: 'Задача найдена',
-      type: TaskResponseDto,
-    }),
-    ApiResponse({ status: 400, description: 'Некорректный UUID задачи' }),
-    ApiResponse({ status: 401, description: 'Пользователь не авторизован' }),
-    ApiResponse({ status: 404, description: 'Задача не найдена' }),
   );
 }
